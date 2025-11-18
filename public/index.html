@@ -274,10 +274,10 @@
 
     <script>
         const TRADING_SESSIONS = {
-            premarket: { name: 'Pre-market - Regular', startTime: '03:58', endTime: '04:02', color: '#ec4899' },
-            overnight: { name: 'Overnight - Pre-market', startTime: '07:58', endTime: '08:02', color: '#8b5cf6' },
-            regular: { name: 'Regular - Afterhours', startTime: '09:28', endTime: '09:32', color: '#10b981' },
-            afterhours: { name: 'Afterhours - Pre-market', startTime: '15:58', endTime: '16:02', color: '#f59e0b' }
+            overnight: { name: 'Overnight - Premarket', startTime: '03:58', endTime: '04:02', color: '#8b5cf6' },
+            premarket: { name: 'Premarket - Regular Hours', startTime: '09:28', endTime: '09:32', color: '#ec4899' },
+            regular: { name: 'Regular Hours - After Hours', startTime: '15:58', endTime: '16:02', color: '#10b981' },
+            afterhours: { name: 'After Hours - Overnight', startTime: '19:58', endTime: '20:02', color: '#f59e0b' }
         };
 
         const charts = [];
@@ -303,13 +303,32 @@
         function getUTCDateTimeForET(date, etTime) {
             const [hours, minutes] = etTime.split(':').map(Number);
             
-            // Create date in ET timezone
-            const etDateStr = `${date.toISOString().split('T')[0]}T${etTime}:00`;
-            const etDate = new Date(etDateStr);
+            // Get date components (date is in UTC from our selector)
+            const year = date.getUTCFullYear();
+            const month = date.getUTCMonth();
+            const day = date.getUTCDate();
             
-            // ET is UTC-5 (EST) or UTC-4 (EDT), we'll add 4-5 hours to convert to UTC
-            // For simplicity, we'll assume EDT (UTC-4) during trading months
-            const utcDate = new Date(etDate.getTime() + (4 * 60 * 60 * 1000));
+            // Determine ET offset by testing what hour it is in ET when it's 12:00 UTC
+            const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+            const etHourString = testDate.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const etHour = parseInt(etHourString.split(':')[0]);
+            
+            // In EST (winter): UTC 12:00 = 07:00 ET (offset 5)
+            // In EDT (summer): UTC 12:00 = 08:00 ET (offset 4)
+            const etOffset = (12 - etHour);
+            
+            console.log(`Date ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} ${etTime} ET: UTC 12:00 = ${etHourString} ET, offset = ${etOffset}`);
+            
+            // Create UTC timestamp: add ET offset hours
+            const utcDate = new Date(Date.UTC(year, month, day, hours + etOffset, minutes, 0));
+            
+            console.log(`  Result: ${etTime} ET = ${utcDate.toISOString()}`);
             
             return utcDate.toISOString();
         }
@@ -351,7 +370,10 @@
 
             const ctx = canvas.getContext('2d');
             
-            const labels = data.map(d => {
+            // Data comes from API in DESC order (newest first), reverse to show oldest → newest
+            const sortedData = [...data].reverse();
+            
+            const labels = sortedData.map(d => {
                 const date = new Date(d.timestamp);
                 return date.toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
@@ -361,7 +383,7 @@
                 });
             });
             
-            const values = data.map(d => parseFloat(d.composite_rate));
+            const values = sortedData.map(d => parseFloat(d.composite_rate));
 
             const chart = new Chart(ctx, {
                 type: 'line',
@@ -460,7 +482,7 @@
 
             const ctx = canvas.getContext('2d');
             
-            // Combine all session data and sort by timestamp
+            // Combine all session data and sort by timestamp (ascending: oldest → newest)
             const allData = [];
             Object.keys(allSessionsData).forEach(session => {
                 allSessionsData[session].forEach(d => {
@@ -471,6 +493,7 @@
                 });
             });
             
+            // Sort ascending: oldest first (left) to newest last (right)
             allData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
             const labels = allData.map(d => {
@@ -652,26 +675,44 @@
         // Populate day selector dropdown
         function populateDaySelector() {
             const select = document.getElementById('daySelect');
-            const today = new Date();
+            const now = new Date();
+            
+            // Get current date in ET timezone
+            const etDateString = now.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const [etMonth, etDay, etYear] = etDateString.split(/[/,\s]+/).map(s => s.trim());
+            const todayET = new Date(Date.UTC(
+                parseInt(etYear),
+                parseInt(etMonth) - 1,
+                parseInt(etDay),
+                0, 0, 0, 0
+            ));
             
             for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                date.setHours(0, 0, 0, 0);
+                const date = new Date(todayET);
+                date.setUTCDate(date.getUTCDate() - i);
                 
                 const option = document.createElement('option');
                 option.value = i;
                 
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    timeZone: 'UTC',
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                
                 if (i === 0) {
-                    option.text = `Today (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                    option.text = `Today - ${dateStr}`;
                 } else if (i === 1) {
-                    option.text = `Yesterday (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                    option.text = `Yesterday - ${dateStr}`;
                 } else {
-                    option.text = date.toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'short', 
-                        day: 'numeric' 
-                    });
+                    option.text = dateStr;
                 }
                 
                 select.appendChild(option);
@@ -693,10 +734,24 @@
                 const select = document.getElementById('daySelect');
                 const daysAgo = parseInt(select.value);
                 
-                const today = new Date();
-                const selectedDate = new Date(today);
-                selectedDate.setDate(selectedDate.getDate() - daysAgo);
-                selectedDate.setHours(0, 0, 0, 0);
+                // Get current date in ET timezone
+                const now = new Date();
+                const etDateString = now.toLocaleString('en-US', {
+                    timeZone: 'America/New_York',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                
+                // Parse ET date and go back daysAgo days
+                const [etMonth, etDay, etYear] = etDateString.split(/[/,\s]+/).map(s => s.trim());
+                const selectedDate = new Date(Date.UTC(
+                    parseInt(etYear),
+                    parseInt(etMonth) - 1,
+                    parseInt(etDay),
+                    0, 0, 0, 0
+                ));
+                selectedDate.setUTCDate(selectedDate.getUTCDate() - daysAgo);
                 
                 updateStatus('Loading trading sessions...');
                 const dayData = await loadDayData(selectedDate, 0);

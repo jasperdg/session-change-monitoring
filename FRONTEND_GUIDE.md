@@ -17,17 +17,17 @@ Use the dropdown selector to choose:
 
 The selected day shows **5 charts**:
 
-1. **Pre-market - Regular** (3:58 AM – 4:02 AM ET) - Pink
-   - Early pre-market to regular transition
+1. **Overnight - Premarket** (3:58 AM – 4:02 AM ET) - Purple
+   - Early morning overnight to premarket transition
    
-2. **Overnight - Pre-market** (7:58 AM – 8:02 AM ET) - Purple
-   - Morning transition period (4 minutes)
+2. **Premarket - Regular Hours** (9:28 AM – 9:32 AM ET) - Pink
+   - Market opening transition (4 minutes)
    
-3. **Regular - Afterhours** (9:28 AM – 9:32 AM ET) - Green
-   - Regular hours opening transition
+3. **Regular Hours - After Hours** (3:58 PM – 4:02 PM ET) - Green
+   - Market closing transition
    
-4. **Afterhours - Pre-market** (3:58 PM – 4:02 PM ET) - Orange
-   - Closing to after-hours transition
+4. **After Hours - Overnight** (7:58 PM – 8:02 PM ET) - Orange
+   - Evening after-hours to overnight transition
    
 5. **All Transition Periods Combined**
    - All 4 windows merged (16 minutes total)
@@ -45,37 +45,48 @@ Each chart displays:
 ## How It Works
 
 ### Timezone Conversion
-- All session times are specified in **ET (Eastern Time)**
-- Frontend automatically converts ET to UTC for API queries
-- Database stores timestamps in UTC
-- Charts display times in local browser timezone
+- All session times are specified in **ET (Eastern Time - America/New_York)**
+- **Day selector shows dates in ET** (not your local date)
+- Frontend detects current ET date, even if you're in a different timezone
+- Automatically handles **EDT (UTC-4)** and **EST (UTC-5)** conversion
+- Converts ET times → UTC for API queries
+- Database stores all timestamps in UTC
+- Charts display times in **your browser's local timezone**
+
+**Important:** If it's 11 PM Monday in California, the dashboard shows "Today - Tuesday" because it's already Tuesday in ET.
 
 ### Data Flow
 
 ```
-┌─────────────────┐
-│  Frontend       │
-│  JavaScript     │
-└────────┬────────┘
+┌─────────────────────────────────────┐
+│  Your Browser (Any Timezone)        │
+│  1. Detects current ET date/time    │
+└────────┬────────────────────────────┘
          │
-         │ 1. Calculate ET session times
-         │ 2. Convert to UTC
-         │ 3. Query API with UTC timestamps
-         │
-         ▼
-┌─────────────────┐
-│  API            │
-│  /api/history   │
-└────────┬────────┘
-         │
-         │ 4. Query database
-         │ 5. Return data
+         │ 2. User selects day (in ET)
+         │ 3. Calculate ET session times
+         │ 4. Convert ET → UTC (handles EDT/EST)
          │
          ▼
-┌─────────────────┐
-│  Database       │
-│  (UTC times)    │
-└─────────────────┘
+┌─────────────────────────────────────┐
+│  API /api/history                   │
+│  5. Query with UTC timestamps       │
+└────────┬────────────────────────────┘
+         │
+         │ 6. Query database
+         │ 7. Return UTC timestamps
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  Database (UTC times)               │
+└────────┬────────────────────────────┘
+         │
+         │ 8. Return to browser
+         ▼
+┌─────────────────────────────────────┐
+│  Charts Display                     │
+│  Times shown in YOUR local timezone │
+└─────────────────────────────────────┘
 ```
 
 ### Transition Window Calculation
@@ -89,6 +100,16 @@ For each day, the frontend:
    - No special handling for day boundaries
 
 **Important:** The combined chart does NOT show a full trading day. It shows only the 4 transition windows stitched together (with gaps between them).
+
+### Sunday Data Availability
+
+Sessions occur throughout the day (in ET), with one session spanning into the next day:
+- ✅ Overnight - Premarket: 3:58 AM
+- ✅ Premarket - Regular Hours: 9:28 AM  
+- ✅ Regular Hours - After Hours: 3:58 PM
+- ✅ After Hours - Overnight: 7:58 PM (spans to next day at 8:02 PM)
+
+**Note:** The After Hours - Overnight session at 7:58 PM starts on one day and continues into the next calendar day.
 
 ## Usage
 
@@ -124,9 +145,9 @@ Edit the `TRADING_SESSIONS` object in the HTML file:
 ```javascript
 const TRADING_SESSIONS = {
     overnight: { 
-        name: 'Overnight - Pre-market', 
-        startTime: '07:58',  // 7:58 AM ET
-        endTime: '08:02',    // 8:02 AM ET
+        name: 'Overnight - Premarket', 
+        startTime: '03:58',  // 3:58 AM ET
+        endTime: '04:02',    // 4:02 AM ET
         color: '#8b5cf6' 
     },
     // ... add or modify transitions
@@ -258,4 +279,5 @@ Potential improvements:
 - [ ] Real-time updates with WebSocket
 - [ ] Mobile-responsive improvements
 - [ ] Session performance metrics
+
 

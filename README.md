@@ -12,14 +12,15 @@ A full-stack application that monitors the SEDA API endpoint, stores data in a d
 
 ### Frontend Dashboard
 - 📈 **Trading Session Transition Analysis** (select any day from the last 7 days)
-  - Pre-market - Regular: 3:58 AM – 4:02 AM ET (4-minute window)
-  - Overnight - Pre-market: 7:58 AM – 8:02 AM ET (4-minute window)
-  - Regular - Afterhours: 9:28 AM – 9:32 AM ET (4-minute window)
-  - Afterhours - Pre-market: 3:58 PM – 4:02 PM ET (4-minute window)
+  - Overnight - Premarket: 3:58 AM – 4:02 AM ET (4-minute window)
+  - Premarket - Regular Hours: 9:28 AM – 9:32 AM ET (4-minute window)
+  - Regular Hours - After Hours: 3:58 PM – 4:02 PM ET (4-minute window)
+  - After Hours - Overnight: 7:58 PM – 8:02 PM ET (4-minute window)
   - Combined Transitions View (all 4 windows merged - 16 minutes total)
 - 🎨 Beautiful, modern UI with color-coded sessions
 - 📊 Real-time statistics (min, max, avg, data points)
-- 📅 Day selector dropdown for easy navigation
+- 📅 Day selector dropdown for easy navigation (shows ET dates)
+- 🕐 Proper timezone handling (your timezone → ET → UTC → display)
 - 🔄 One-click data reload
 
 ## Architecture
@@ -142,21 +143,21 @@ After deployment:
 
 The frontend displays data for four distinct session transition periods (all times in ET):
 
-1. **Pre-market - Regular** (3:58 AM – 4:02 AM ET)
+1. **Overnight - Premarket** (3:58 AM – 4:02 AM ET)
    - 4-minute window during early morning transition
-   - Pre-market to regular hours change
+   - Overnight to premarket session change
 
-2. **Overnight - Pre-market** (7:58 AM – 8:02 AM ET)
-   - 4-minute window capturing rate changes during transition
-   - Morning session change
-
-3. **Regular - Afterhours** (9:28 AM – 9:32 AM ET)
+2. **Premarket - Regular Hours** (9:28 AM – 9:32 AM ET)
    - 4-minute window during market opening
-   - Regular to after-hours transition
+   - Premarket to regular trading hours transition
 
-4. **Afterhours - Pre-market** (3:58 PM – 4:02 PM ET)
-   - 4-minute window during closing transition
-   - End of day session change
+3. **Regular Hours - After Hours** (3:58 PM – 4:02 PM ET)
+   - 4-minute window during market close
+   - Regular hours to after-hours transition
+
+4. **After Hours - Overnight** (7:58 PM – 8:02 PM ET)
+   - 4-minute window during evening transition
+   - After-hours to overnight session change
 
 5. **Combined Transitions**
    - All 4 transition windows merged (16 minutes total per day)

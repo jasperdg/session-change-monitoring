@@ -70,10 +70,10 @@ Your dashboard monitors these 4 sessions (ET timezone):
 
 | Session | Time (ET) | Color | Description |
 |---------|-----------|-------|-------------|
-| 🌅 Pre-market - Regular | 3:58 AM – 4:02 AM | Pink | Early morning |
-| 🌙 Overnight - Pre-market | 7:58 AM – 8:02 AM | Purple | Morning transition |
-| 📈 Regular - Afterhours | 9:28 AM – 9:32 AM | Green | Main session |
-| 🌆 Afterhours - Pre-market | 3:58 PM – 4:02 PM | Orange | Evening trading |
+| 🌙 Overnight - Premarket | 3:58 AM – 4:02 AM | Purple | Early morning transition |
+| 🌅 Premarket - Regular Hours | 9:28 AM – 9:32 AM | Pink | Market opening |
+| 📈 Regular Hours - After Hours | 3:58 PM – 4:02 PM | Green | Market closing |
+| 🌆 After Hours - Overnight | 7:58 PM – 8:02 PM | Orange | Evening transition |
 
 Plus one **Full Trading Day** chart combining all sessions!
 
