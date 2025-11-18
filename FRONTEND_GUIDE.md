@@ -268,16 +268,85 @@ fetch(`/api/history?start=${start}&end=${end}&limit=1000`)
 3. **Destroy old charts**: Charts are destroyed before reload
 4. **Progressive loading**: Consider loading days one at a time
 
+## Interactive Data Viewer
+
+### Feature: Double-Click to View Details
+
+The frontend includes a powerful data viewer that allows you to see all database records for any chart timeframe.
+
+### How It Works
+
+1. **Trigger**: Double-click on any chart (session-specific or combined)
+2. **Data Fetch**: Automatically queries `/api/history` with the chart's time range
+3. **Display**: Shows a modal with all database records
+
+### Implementation Details
+
+```javascript
+// Add double-click handler to any chart
+canvas.addEventListener('dblclick', async () => {
+    const startTime = data[0].timestamp;
+    const endTime = data[data.length - 1].timestamp;
+    await showDetailedDataViewer(startTime, endTime, sessionName);
+});
+```
+
+### Data Viewer Modal Components
+
+1. **Info Panel**: Shows session name, time range, record count, and duration
+2. **Data Table**: Displays all database fields:
+   - ID (record identifier)
+   - Timestamp (Local) - in user's timezone
+   - Timestamp (UTC) - original database timestamp
+   - Composite Rate - highlighted for visibility
+   - Active Session
+   - Session Weight
+   - Reference Weight
+
+3. **Export Buttons**:
+   - CSV Export - for spreadsheet analysis
+   - JSON Export - for programmatic access
+
+### User Experience
+
+- Modal appears centered with dark overlay
+- Table headers are sticky (stay visible when scrolling)
+- Hover effects on table rows
+- Click outside modal to close
+- Maximum 10,000 records to prevent performance issues
+- Data shown from oldest to newest
+
+### Customization
+
+To modify the data viewer:
+
+```javascript
+// Change maximum records
+const url = `/api/history?start=${start}&end=${end}&limit=10000`;
+
+// Add more columns to the table
+row.innerHTML = `
+    <td>${record.id}</td>
+    <td>${record.custom_field}</td>
+    // ... add more fields
+`;
+
+// Customize export format
+const headers = ['ID', 'Timestamp', 'Your Custom Field'];
+```
+
 ## Future Enhancements
 
 Potential improvements:
 - [ ] Add date range picker
-- [ ] Export data to CSV
+- [x] Export data to CSV
+- [x] Export data to JSON
 - [ ] Compare multiple days side-by-side
 - [ ] Add moving averages
 - [ ] Volume/activity indicators
 - [ ] Real-time updates with WebSocket
 - [ ] Mobile-responsive improvements
 - [ ] Session performance metrics
+- [ ] Zoom-based data viewer (show only zoomed range)
 
 

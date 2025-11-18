@@ -244,6 +244,206 @@
             height: 3px;
             border-radius: 2px;
         }
+
+        /* Data viewer modal */
+        .data-viewer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .data-viewer-modal.show {
+            display: block;
+        }
+
+        .data-viewer-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .data-viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .data-viewer-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .data-viewer-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .data-viewer-close:hover {
+            background: #dc2626;
+        }
+
+        .data-viewer-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .data-table-container {
+            overflow-x: auto;
+            max-height: 60vh;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .data-table tr.selected {
+            background: #dbeafe !important;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .data-table td.timestamp {
+            white-space: nowrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .data-table td.rate {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-export {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-export:hover {
+            background: #059669;
+        }
+
+        .zoom-instruction {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .raw-data-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .raw-data-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .raw-data-content {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .raw-data-empty {
+            color: #6b7280;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-copy-raw {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-copy-raw:hover {
+            background: #4b5563;
+        }
     </style>
 </head>
 <body>
@@ -272,6 +472,45 @@
         <div id="chartsContainer"></div>
     </div>
 
+    <!-- Data Viewer Modal -->
+    <div id="dataViewerModal" class="data-viewer-modal">
+        <div class="data-viewer-content">
+            <div class="data-viewer-header">
+                <div class="data-viewer-title">📊 Selected Timeframe Data</div>
+                <button class="data-viewer-close" onclick="closeDataViewer()">✕ Close</button>
+            </div>
+            <div class="data-viewer-info" id="dataViewerInfo"></div>
+            <div class="data-table-container">
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Timestamp (Local)</th>
+                            <th>Timestamp (UTC)</th>
+                            <th>Composite Rate</th>
+                            <th>Active Session</th>
+                            <th>Session Weight</th>
+                            <th>Reference Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody"></tbody>
+                </table>
+            </div>
+            <div class="raw-data-section">
+                <div class="raw-data-header">
+                    <span>📝 Raw API Response & Database Entry</span>
+                    <button class="btn-copy-raw" onclick="copyRawData()" style="display: none;" id="btnCopyRaw">📋 Copy JSON</button>
+                </div>
+                <div id="rawDataContent" class="raw-data-content" style="display: none;"></div>
+                <div id="rawDataEmpty" class="raw-data-empty">Click on a row above to view the complete raw API response and database entry</div>
+            </div>
+            <div class="export-buttons">
+                <button class="btn-export" onclick="exportToCSV()">📥 Export to CSV</button>
+                <button class="btn-export" onclick="exportToJSON()">📥 Export to JSON</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const TRADING_SESSIONS = {
             overnight: { name: 'Overnight - Premarket', startTime: '03:58', endTime: '04:02', color: '#8b5cf6' },
@@ -281,6 +520,8 @@
         };
 
         const charts = [];
+        let currentViewerData = []; // Store data for export
+        let selectedRawData = null; // Store selected record for raw view
 
         function showError(message) {
             const errorContainer = document.getElementById('errorContainer');
@@ -373,6 +614,9 @@
             // Data comes from API in DESC order (newest first), reverse to show oldest → newest
             const sortedData = [...data].reverse();
             
+            // Store original timestamps for tooltip
+            const timestamps = sortedData.map(d => d.timestamp);
+            
             const labels = sortedData.map(d => {
                 const date = new Date(d.timestamp);
                 return date.toLocaleTimeString('en-US', { 
@@ -420,7 +664,35 @@
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
                             padding: 10,
                             titleFont: { size: 12 },
-                            bodyFont: { size: 12 }
+                            bodyFont: { size: 12 },
+                            callbacks: {
+                                title: function(context) {
+                                    // Get the original timestamp from the data
+                                    const dataIndex = context[0].dataIndex;
+                                    if (dataIndex < timestamps.length) {
+                                        const timestamp = timestamps[dataIndex];
+                                        const date = new Date(timestamp);
+                                        
+                                        // Format in ET timezone
+                                        const etTime = date.toLocaleString('en-US', {
+                                            timeZone: 'America/New_York',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true
+                                        });
+                                        
+                                        return `${etTime} ET`;
+                                    }
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    return `Rate: ${parseFloat(context.parsed.y).toFixed(5)}`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -453,6 +725,57 @@
             });
 
             charts.push(chart);
+            
+            // Add double-click handler to view detailed data
+            canvas.addEventListener('dblclick', async (event) => {
+                // Use sortedData which is in ascending order (oldest to newest)
+                if (sortedData.length === 0) {
+                    showError('No data available in this chart');
+                    return;
+                }
+                
+                // Get the clicked point index from Chart.js
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                
+                let clickedIndex = -1;
+                if (points.length > 0) {
+                    clickedIndex = points[0].index;
+                } else {
+                    // If no exact point, get nearest point
+                    const nearestPoints = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+                    if (nearestPoints.length > 0) {
+                        clickedIndex = nearestPoints[0].index;
+                    }
+                }
+                
+                if (clickedIndex === -1 || clickedIndex >= sortedData.length) {
+                    showError('Could not determine clicked data point');
+                    return;
+                }
+                
+                // Get 5 points before and 5 points after (11 total)
+                const startIndex = Math.max(0, clickedIndex - 5);
+                const endIndex = Math.min(sortedData.length - 1, clickedIndex + 5);
+                
+                const startTime = sortedData[startIndex].timestamp;
+                const endTime = sortedData[endIndex].timestamp;
+                
+                console.log('Session chart clicked:', {
+                    sessionName,
+                    totalPoints: sortedData.length,
+                    clickedIndex,
+                    rangeIndices: { start: startIndex, end: endIndex },
+                    rangeSize: endIndex - startIndex + 1,
+                    clickedPoint: sortedData[clickedIndex],
+                    timeRange: {
+                        start: new Date(startTime).toISOString(),
+                        end: new Date(endTime).toISOString()
+                    }
+                });
+                
+                await showDetailedDataViewer(startTime, endTime, `${sessionName} (±5 points)`);
+            });
+            
             return chart;
         }
 
@@ -495,6 +818,9 @@
             
             // Sort ascending: oldest first (left) to newest last (right)
             allData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // Store original timestamps for tooltip
+            const timestamps = allData.map(d => d.timestamp);
 
             const labels = allData.map(d => {
                 const date = new Date(d.timestamp);
@@ -545,7 +871,36 @@
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
                             padding: 12,
                             titleFont: { size: 13 },
-                            bodyFont: { size: 13 }
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                title: function(context) {
+                                    // Get the original timestamp from the data
+                                    const dataIndex = context[0].dataIndex;
+                                    if (dataIndex < timestamps.length) {
+                                        const timestamp = timestamps[dataIndex];
+                                        const date = new Date(timestamp);
+                                        
+                                        // Format in ET timezone
+                                        const etTime = date.toLocaleString('en-US', {
+                                            timeZone: 'America/New_York',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true
+                                        });
+                                        
+                                        return `${etTime} ET`;
+                                    }
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    return `${datasetLabel}: ${parseFloat(context.parsed.y).toFixed(5)}`;
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -578,7 +933,303 @@
             });
 
             charts.push(chart);
+            
+            // Add double-click handler to view detailed data for combined chart
+            canvas.addEventListener('dblclick', async (event) => {
+                // Use allData which is already sorted ascending (oldest to newest)
+                if (allData.length === 0) {
+                    showError('No data available in combined chart');
+                    return;
+                }
+                
+                // Get the clicked point index from Chart.js
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                
+                let clickedIndex = -1;
+                if (points.length > 0) {
+                    clickedIndex = points[0].index;
+                } else {
+                    // If no exact point, get nearest point
+                    const nearestPoints = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+                    if (nearestPoints.length > 0) {
+                        clickedIndex = nearestPoints[0].index;
+                    }
+                }
+                
+                if (clickedIndex === -1 || clickedIndex >= allData.length) {
+                    showError('Could not determine clicked data point');
+                    return;
+                }
+                
+                // Get 5 points before and 5 points after (11 total)
+                const startIndex = Math.max(0, clickedIndex - 5);
+                const endIndex = Math.min(allData.length - 1, clickedIndex + 5);
+                
+                const startTime = allData[startIndex].timestamp;
+                const endTime = allData[endIndex].timestamp;
+                
+                console.log('Combined chart clicked:', {
+                    totalPoints: allData.length,
+                    clickedIndex,
+                    rangeIndices: { start: startIndex, end: endIndex },
+                    rangeSize: endIndex - startIndex + 1,
+                    clickedPoint: allData[clickedIndex],
+                    timeRange: {
+                        start: new Date(startTime).toISOString(),
+                        end: new Date(endTime).toISOString()
+                    }
+                });
+                
+                await showDetailedDataViewer(startTime, endTime, 'Combined Sessions (±5 points)');
+            });
+            
             return chart;
+        }
+
+        // Show data viewer for a time range
+        async function showDetailedDataViewer(startTime, endTime, sessionName = '') {
+            try {
+                updateStatus('Fetching detailed data...');
+                
+                // Debug logging
+                console.log('Data Viewer Query:', {
+                    sessionName,
+                    startTime,
+                    endTime,
+                    startDate: new Date(startTime).toISOString(),
+                    endDate: new Date(endTime).toISOString()
+                });
+                
+                const url = `/api/history?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&limit=10000`;
+                console.log('API URL:', url);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('API Response:', { recordCount: result.data?.length || 0 });
+                
+                if (!result.data || result.data.length === 0) {
+                    showError(`No detailed data found for this time range.<br>
+                        Start: ${new Date(startTime).toLocaleString()}<br>
+                        End: ${new Date(endTime).toLocaleString()}<br>
+                        <small>Check console for API query details.</small>`);
+                    return;
+                }
+
+                // Reverse to show oldest first
+                const data = result.data.reverse();
+                currentViewerData = data;
+                
+                // Populate info
+                const infoDiv = document.getElementById('dataViewerInfo');
+                const startDate = new Date(startTime);
+                const endDate = new Date(endTime);
+                infoDiv.innerHTML = `
+                    <strong>Session:</strong> ${sessionName || 'Combined'}<br>
+                    <strong>Time Range:</strong> ${startDate.toLocaleString()} - ${endDate.toLocaleString()}<br>
+                    <strong>Records Found:</strong> ${data.length}<br>
+                    <strong>Duration:</strong> ${((endDate - startDate) / 1000 / 60).toFixed(2)} minutes
+                `;
+                
+                // Populate table
+                const tbody = document.getElementById('dataTableBody');
+                tbody.innerHTML = '';
+                
+                data.forEach((record, index) => {
+                    const row = tbody.insertRow();
+                    const localTime = new Date(record.timestamp);
+                    
+                    row.innerHTML = `
+                        <td>${record.id}</td>
+                        <td class="timestamp">${localTime.toLocaleString()}</td>
+                        <td class="timestamp">${record.timestamp}</td>
+                        <td class="rate">${parseFloat(record.composite_rate).toFixed(5)}</td>
+                        <td>${record.active_session || 'N/A'}</td>
+                        <td>${record.session_weight || 'N/A'}</td>
+                        <td>${record.reference_weight || 'N/A'}</td>
+                    `;
+                    
+                    // Add click handler to show raw data
+                    row.addEventListener('click', function() {
+                        // Remove previous selection
+                        const previousSelected = tbody.querySelector('tr.selected');
+                        if (previousSelected) {
+                            previousSelected.classList.remove('selected');
+                        }
+                        
+                        // Select this row
+                        this.classList.add('selected');
+                        
+                        // Show raw data
+                        showRawData(record);
+                    });
+                });
+                
+                // Clear raw data section
+                clearRawData();
+                
+                // Show modal
+                document.getElementById('dataViewerModal').classList.add('show');
+                updateStatus(`Loaded ${data.length} detailed records`);
+                
+            } catch (error) {
+                console.error('Error loading detailed data:', error);
+                showError(`Failed to load detailed data: ${error.message}`);
+            }
+        }
+
+        // Close data viewer
+        function closeDataViewer() {
+            document.getElementById('dataViewerModal').classList.remove('show');
+            clearRawData();
+        }
+
+        // Show raw data for selected record
+        function showRawData(record) {
+            selectedRawData = record;
+            
+            const rawDataContent = document.getElementById('rawDataContent');
+            const rawDataEmpty = document.getElementById('rawDataEmpty');
+            const btnCopyRaw = document.getElementById('btnCopyRaw');
+            
+            // Parse raw_data if it exists (it's stored as JSON string in database)
+            let displayData = { ...record };
+            if (record.raw_data) {
+                try {
+                    // If raw_data is a string, parse it
+                    if (typeof record.raw_data === 'string') {
+                        displayData.raw_data = JSON.parse(record.raw_data);
+                    }
+                } catch (e) {
+                    console.warn('Could not parse raw_data:', e);
+                }
+            }
+            
+            // Create formatted display with raw_data highlighted
+            let formattedDisplay = '';
+            
+            if (displayData.raw_data) {
+                formattedDisplay = `// ============================================\n`;
+                formattedDisplay += `// RAW API RESPONSE DATA\n`;
+                formattedDisplay += `// ============================================\n\n`;
+                formattedDisplay += JSON.stringify(displayData.raw_data, null, 2);
+                formattedDisplay += `\n\n// ============================================\n`;
+                formattedDisplay += `// COMPLETE DATABASE RECORD\n`;
+                formattedDisplay += `// ============================================\n\n`;
+                formattedDisplay += JSON.stringify(displayData, null, 2);
+            } else {
+                formattedDisplay = JSON.stringify(displayData, null, 2);
+            }
+            
+            rawDataContent.textContent = formattedDisplay;
+            rawDataContent.style.display = 'block';
+            rawDataEmpty.style.display = 'none';
+            btnCopyRaw.style.display = 'inline-block';
+            
+            // Scroll to raw data section
+            rawDataContent.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Clear raw data display
+        function clearRawData() {
+            selectedRawData = null;
+            
+            const rawDataContent = document.getElementById('rawDataContent');
+            const rawDataEmpty = document.getElementById('rawDataEmpty');
+            const btnCopyRaw = document.getElementById('btnCopyRaw');
+            
+            rawDataContent.style.display = 'none';
+            rawDataContent.textContent = '';
+            rawDataEmpty.style.display = 'block';
+            btnCopyRaw.style.display = 'none';
+        }
+
+        // Copy raw data to clipboard
+        function copyRawData() {
+            if (!selectedRawData) return;
+            
+            // Parse and format raw_data if it exists
+            let dataToCopy = { ...selectedRawData };
+            if (dataToCopy.raw_data && typeof dataToCopy.raw_data === 'string') {
+                try {
+                    dataToCopy.raw_data = JSON.parse(dataToCopy.raw_data);
+                } catch (e) {
+                    console.warn('Could not parse raw_data for copy:', e);
+                }
+            }
+            
+            const jsonString = JSON.stringify(dataToCopy, null, 2);
+            
+            navigator.clipboard.writeText(jsonString).then(() => {
+                const btn = document.getElementById('btnCopyRaw');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = '#10b981';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6b7280';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showError('Failed to copy to clipboard');
+            });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('dataViewerModal').addEventListener('click', (e) => {
+            if (e.target.id === 'dataViewerModal') {
+                closeDataViewer();
+            }
+        });
+
+        // Export to CSV
+        function exportToCSV() {
+            if (currentViewerData.length === 0) return;
+            
+            const headers = ['ID', 'Timestamp (UTC)', 'Timestamp (Local)', 'Composite Rate', 'Active Session', 'Session Weight', 'Reference Weight'];
+            const csvContent = [
+                headers.join(','),
+                ...currentViewerData.map(record => {
+                    const localTime = new Date(record.timestamp).toLocaleString();
+                    return [
+                        record.id,
+                        `"${record.timestamp}"`,
+                        `"${localTime}"`,
+                        record.composite_rate,
+                        record.active_session || '',
+                        record.session_weight || '',
+                        record.reference_weight || ''
+                    ].join(',');
+                })
+            ].join('\n');
+            
+            downloadFile(csvContent, 'session-data.csv', 'text/csv');
+        }
+
+        // Export to JSON
+        function exportToJSON() {
+            if (currentViewerData.length === 0) return;
+            
+            const jsonContent = JSON.stringify(currentViewerData, null, 2);
+            downloadFile(jsonContent, 'session-data.json', 'application/json');
+        }
+
+        // Helper to download file
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         }
 
         // Load data for a specific day
@@ -632,6 +1283,9 @@
                                 <span>Max: ${stats.max}</span>
                                 <span>Avg: ${stats.avg}</span>
                             </div>
+                            <div class="zoom-instruction">
+                                💡 Drag to zoom | Double-click a point to view ±5 records
+                            </div>
                         ` : '<div class="no-data">No data available for this session</div>'}
                     </div>
                 `;
@@ -659,6 +1313,9 @@
                         </div>
                         <div style="text-align: center; margin-top: 10px; font-size: 0.85rem; color: #6b7280; font-style: italic;">
                             ⚠️ Note: This shows only transition periods, not continuous trading data
+                        </div>
+                        <div class="zoom-instruction">
+                            💡 Double-click a point to view ±5 surrounding records
                         </div>
                     ` : '<div class="no-data">No data available for this day</div>'}
                 </div>

@@ -142,6 +142,42 @@ const TRADING_SESSIONS = {
 };
 ```
 
+## 💡 Using the Detailed Data Viewer
+
+### View Full Database Records
+
+You can view all database records for any chart by:
+
+1. **Double-clicking on any chart** (session or combined)
+2. A modal window will open showing:
+   - Session name and exact time range
+   - Total number of database records found
+   - Duration of the selected period
+
+### Data Table Features
+
+The data viewer shows a table with all database fields:
+- **ID**: Database record identifier
+- **Timestamp (Local)**: Time in your browser's timezone
+- **Timestamp (UTC)**: Original UTC timestamp
+- **Composite Rate**: The rate value (highlighted in blue)
+- **Active Session**: Which trading session was active
+- **Session Weight**: Weight for the active session
+- **Reference Weight**: Reference market weight
+
+### Export Data
+
+Export the selected data using the buttons at the bottom of the modal:
+- **📥 Export to CSV**: Download as spreadsheet-compatible file
+- **📥 Export to JSON**: Download as JSON for programmatic use
+
+### Tips
+
+- The table is scrollable for large datasets (up to 10,000 records)
+- Data is shown from oldest to newest
+- Click outside the modal or press the ✕ button to close
+- Zoom into a chart first if you want to view a specific sub-range
+
 ## 🔗 Resources
 
 - [Vercel Documentation](https://vercel.com/docs)

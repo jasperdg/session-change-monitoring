@@ -22,6 +22,8 @@ A full-stack application that monitors the SEDA API endpoint, stores data in a d
 - 📅 Day selector dropdown for easy navigation (shows ET dates)
 - 🕐 Proper timezone handling (your timezone → ET → UTC → display)
 - 🔄 One-click data reload
+- 🔍 **Double-click charts** to view detailed database records
+- 📥 **Export data** to CSV or JSON format
 
 ## Architecture
 
@@ -79,6 +81,48 @@ Get statistics about stored data.
 ```
 
 **Note:** This project is read-only. Data collection is handled by a separate cron project that writes to the same database.
+
+## 💡 Using the Frontend
+
+### Viewing Charts
+
+1. Open the dashboard in your browser
+2. Select a day from the dropdown (defaults to today)
+3. View 5 charts:
+   - 4 individual transition period charts (4 minutes each)
+   - 1 combined chart showing all transition periods
+
+### Viewing Detailed Data
+
+To see all database records for a specific timeframe:
+
+1. **Double-click any chart** to open the data viewer modal
+2. The modal displays:
+   - Session name and time range
+   - Total number of records found
+   - Complete data table with all database fields
+3. **Scroll** through the table to view all records
+4. **Export data** using the buttons at the bottom:
+   - 📥 Export to CSV - for spreadsheet analysis
+   - 📥 Export to JSON - for programmatic access
+
+### Chart Interactions
+
+- **Zoom in**: Click and drag horizontally to select a time range
+- **Reset zoom**: Use the reset zoom button that appears when zoomed
+- **View details**: Hover over data points to see exact values
+- **Auto-refresh**: Today's data automatically refreshes every 60 seconds
+
+### Data Table Columns
+
+When viewing detailed data, you'll see:
+- **ID**: Database record identifier
+- **Timestamp (Local)**: Time in your browser's timezone
+- **Timestamp (UTC)**: Original UTC timestamp from database
+- **Composite Rate**: The rate value
+- **Active Session**: Which trading session was active
+- **Session Weight**: Weight for the active session
+- **Reference Weight**: Reference market weight
 
 ## Local Development
 
