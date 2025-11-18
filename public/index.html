@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Sessions Monitor - SEDA API</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.0.0/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .day-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .day-selector label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .day-selector select {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .day-selector select:hover {
+            border-color: #6366f1;
+        }
+
+        .day-selector select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #10b981;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            background-color: #6366f1;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+
+        .day-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .day-title {
+            font-size: 1.8rem;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .day-date {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .chart-time {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .chart-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .full-day-chart {
+            grid-column: 1 / -1;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #991b1b;
+        }
+
+        canvas {
+            max-height: 250px;
+        }
+
+        .full-day-chart canvas {
+            max-height: 400px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Trading Session Transitions Monitor</h1>
+            <p>4-Minute Transition Windows - SEDA API Data</p>
+        </div>
+
+        <div class="controls">
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span id="statusText">Select a day to view data...</span>
+            </div>
+            <div class="day-selector">
+                <label for="daySelect">Select Day:</label>
+                <select id="daySelect" onchange="loadSelectedDay()">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            <button onclick="loadSelectedDay()">🔄 Reload</button>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="loadingContainer" class="loading">Loading trading session data...</div>
+        <div id="chartsContainer"></div>
+    </div>
+
+    <script>
+        const TRADING_SESSIONS = {
+            premarket: { name: 'Pre-market - Regular', startTime: '03:58', endTime: '04:02', color: '#ec4899' },
+            overnight: { name: 'Overnight - Pre-market', startTime: '07:58', endTime: '08:02', color: '#8b5cf6' },
+            regular: { name: 'Regular - Afterhours', startTime: '09:28', endTime: '09:32', color: '#10b981' },
+            afterhours: { name: 'Afterhours - Pre-market', startTime: '15:58', endTime: '16:02', color: '#f59e0b' }
+        };
+
+        const charts = [];
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function updateStatus(message) {
+            document.getElementById('statusText').textContent = message;
+        }
+
+        // Convert ET time to UTC for API query
+        function getUTCDateTimeForET(date, etTime) {
+            const [hours, minutes] = etTime.split(':').map(Number);
+            
+            // Create date in ET timezone
+            const etDateStr = `${date.toISOString().split('T')[0]}T${etTime}:00`;
+            const etDate = new Date(etDateStr);
+            
+            // ET is UTC-5 (EST) or UTC-4 (EDT), we'll add 4-5 hours to convert to UTC
+            // For simplicity, we'll assume EDT (UTC-4) during trading months
+            const utcDate = new Date(etDate.getTime() + (4 * 60 * 60 * 1000));
+            
+            return utcDate.toISOString();
+        }
+
+        // Get session time range for a specific day
+        function getSessionTimeRange(date, session) {
+            const sessionInfo = TRADING_SESSIONS[session];
+            let startDateTime, endDateTime;
+
+            // All sessions now occur on the same day
+            startDateTime = getUTCDateTimeForET(date, sessionInfo.startTime);
+            endDateTime = getUTCDateTimeForET(date, sessionInfo.endTime);
+
+            return { start: startDateTime, end: endDateTime };
+        }
+
+        // Fetch data for a specific time range
+        async function fetchSessionData(start, end) {
+            try {
+                const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                return data.data || [];
+            } catch (error) {
+                console.error('Error fetching session data:', error);
+                return [];
+            }
+        }
+
+        // Create a chart for a session
+        function createSessionChart(containerId, sessionName, sessionTime, data, color) {
+            const canvas = document.getElementById(containerId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            const labels = data.map(d => {
+                const date = new Date(d.timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false 
+                });
+            });
+            
+            const values = data.map(d => parseFloat(d.composite_rate));
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: sessionName,
+                        data: values,
+                        borderColor: color,
+                        backgroundColor: `${color}20`,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 2,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 10,
+                            titleFont: { size: 12 },
+                            bodyFont: { size: 12 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 9 },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 8
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            charts.push(chart);
+            return chart;
+        }
+
+        // Get statistics for data
+        function getDataStats(data) {
+            if (!data || data.length === 0) {
+                return { count: 0, min: 0, max: 0, avg: 0 };
+            }
+
+            const values = data.map(d => parseFloat(d.composite_rate));
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+            return {
+                count: data.length,
+                min: min.toFixed(5),
+                max: max.toFixed(5),
+                avg: avg.toFixed(5)
+            };
+        }
+
+        // Create full day chart
+        function createFullDayChart(containerId, date, allSessionsData) {
+            const canvas = document.getElementById(containerId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Combine all session data and sort by timestamp
+            const allData = [];
+            Object.keys(allSessionsData).forEach(session => {
+                allSessionsData[session].forEach(d => {
+                    allData.push({
+                        ...d,
+                        session: session
+                    });
+                });
+            });
+            
+            allData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            const labels = allData.map(d => {
+                const date = new Date(d.timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                });
+            });
+            
+            const values = allData.map(d => parseFloat(d.composite_rate));
+
+            // Color points by session
+            const pointColors = allData.map(d => TRADING_SESSIONS[d.session].color);
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'All Transition Periods',
+                        data: values,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 15
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            charts.push(chart);
+            return chart;
+        }
+
+        // Load data for a specific day
+        async function loadDayData(date, dayIndex) {
+            const dayStr = date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            const dayId = `day-${dayIndex}`;
+            const allSessionsData = {};
+
+            // Fetch data for each session
+            for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                const timeRange = getSessionTimeRange(date, sessionKey);
+                const data = await fetchSessionData(timeRange.start, timeRange.end);
+                allSessionsData[sessionKey] = data;
+            }
+
+            // Create HTML for this day
+            let html = `
+                <div class="day-section" id="${dayId}">
+                    <div class="day-header">
+                        <div>
+                            <div class="day-title">${dayStr}</div>
+                            <div class="day-date">${date.toISOString().split('T')[0]}</div>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+            `;
+
+            // Add session charts
+            for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                const data = allSessionsData[sessionKey];
+                const stats = getDataStats(data);
+                const canvasId = `chart-${dayIndex}-${sessionKey}`;
+                
+                html += `
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">${sessionInfo.name}</div>
+                            <div class="chart-time">${sessionInfo.startTime} - ${sessionInfo.endTime} ET</div>
+                        </div>
+                        ${data.length > 0 ? `
+                            <canvas id="${canvasId}"></canvas>
+                            <div class="chart-stats">
+                                <span>Points: ${stats.count}</span>
+                                <span>Min: ${stats.min}</span>
+                                <span>Max: ${stats.max}</span>
+                                <span>Avg: ${stats.avg}</span>
+                            </div>
+                        ` : '<div class="no-data">No data available for this session</div>'}
+                    </div>
+                `;
+            }
+
+            // Add combined transitions chart
+            const totalPoints = Object.values(allSessionsData).reduce((sum, data) => sum + data.length, 0);
+            const fullDayCanvasId = `chart-${dayIndex}-fullday`;
+            
+            html += `
+                <div class="chart-container full-day-chart">
+                    <div class="chart-header">
+                        <div class="chart-title">All Transition Periods Combined</div>
+                        <div class="chart-time">4 × 4-minute windows (16 minutes total data)</div>
+                    </div>
+                    ${totalPoints > 0 ? `
+                        <canvas id="${fullDayCanvasId}"></canvas>
+                        <div class="legend">
+                            ${Object.entries(TRADING_SESSIONS).map(([key, info]) => `
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: ${info.color}"></div>
+                                    <span>${info.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.85rem; color: #6b7280; font-style: italic;">
+                            ⚠️ Note: This shows only transition periods, not continuous trading data
+                        </div>
+                    ` : '<div class="no-data">No data available for this day</div>'}
+                </div>
+            `;
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            return { html, allSessionsData, dayIndex };
+        }
+
+        // Populate day selector dropdown
+        function populateDaySelector() {
+            const select = document.getElementById('daySelect');
+            const today = new Date();
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                date.setHours(0, 0, 0, 0);
+                
+                const option = document.createElement('option');
+                option.value = i;
+                
+                if (i === 0) {
+                    option.text = `Today (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                } else if (i === 1) {
+                    option.text = `Yesterday (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                } else {
+                    option.text = date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                }
+                
+                select.appendChild(option);
+            }
+        }
+
+        // Load data for the selected day
+        async function loadSelectedDay() {
+            hideError();
+            updateStatus('Loading data...');
+            document.getElementById('loadingContainer').style.display = 'block';
+            document.getElementById('chartsContainer').innerHTML = '';
+
+            // Destroy existing charts
+            charts.forEach(chart => chart.destroy());
+            charts.length = 0;
+
+            try {
+                const select = document.getElementById('daySelect');
+                const daysAgo = parseInt(select.value);
+                
+                const today = new Date();
+                const selectedDate = new Date(today);
+                selectedDate.setDate(selectedDate.getDate() - daysAgo);
+                selectedDate.setHours(0, 0, 0, 0);
+                
+                updateStatus('Loading trading sessions...');
+                const dayData = await loadDayData(selectedDate, 0);
+
+                // Insert HTML
+                const chartsContainer = document.getElementById('chartsContainer');
+                chartsContainer.innerHTML = dayData.html;
+
+                // Create charts
+                const { allSessionsData, dayIndex } = dayData;
+                
+                // Create session charts
+                for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                    const data = allSessionsData[sessionKey];
+                    if (data.length > 0) {
+                        const canvasId = `chart-${dayIndex}-${sessionKey}`;
+                        createSessionChart(
+                            canvasId,
+                            sessionInfo.name,
+                            `${sessionInfo.startTime} - ${sessionInfo.endTime} ET`,
+                            data,
+                            sessionInfo.color
+                        );
+                    }
+                }
+
+                // Create full day chart
+                const totalPoints = Object.values(allSessionsData).reduce((sum, data) => sum + data.length, 0);
+                if (totalPoints > 0) {
+                    const fullDayCanvasId = `chart-${dayIndex}-fullday`;
+                    createFullDayChart(fullDayCanvasId, selectedDate, allSessionsData);
+                }
+
+                document.getElementById('loadingContainer').style.display = 'none';
+                
+                const dateStr = selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                updateStatus(`Loaded ${charts.length} charts for ${dateStr}`);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError(`Failed to load data: ${error.message}`);
+                document.getElementById('loadingContainer').style.display = 'none';
+                updateStatus('Error loading data');
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            populateDaySelector();
+            loadSelectedDay();
+        });
+    </script>
+</body>
+</html>
+

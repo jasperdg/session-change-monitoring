@@ -1,0 +1,236 @@
+# Session Aware Stocks - SEDA API Monitor
+
+A full-stack application that monitors the SEDA API endpoint, stores data in a database, and displays trading session analytics.
+
+## Features
+
+### Backend API
+- 📊 Historical data storage in PostgreSQL (Neon)
+- 🔍 Flexible query parameters (time ranges, custom dates)
+- 🔐 Read-only API access
+- ⏰ Data collection handled by separate cron project
+
+### Frontend Dashboard
+- 📈 **Trading Session Transition Analysis** (select any day from the last 7 days)
+  - Pre-market - Regular: 3:58 AM – 4:02 AM ET (4-minute window)
+  - Overnight - Pre-market: 7:58 AM – 8:02 AM ET (4-minute window)
+  - Regular - Afterhours: 9:28 AM – 9:32 AM ET (4-minute window)
+  - Afterhours - Pre-market: 3:58 PM – 4:02 PM ET (4-minute window)
+  - Combined Transitions View (all 4 windows merged - 16 minutes total)
+- 🎨 Beautiful, modern UI with color-coded sessions
+- 📊 Real-time statistics (min, max, avg, data points)
+- 📅 Day selector dropdown for easy navigation
+- 🔄 One-click data reload
+
+## Architecture
+
+```
+┌─────────────────┐       ┌──────────────┐
+│  Frontend       │──────▶│  API Routes  │
+│  (public/)      │       │  (api/)      │
+└─────────────────┘       └──────┬───────┘
+                                 │
+                                 ▼
+                     ┌────────────────────┐
+                     │  Neon PostgreSQL   │
+                     │  Database          │
+                     └────────────────────┘
+                                 ▲
+                                 │
+                     ┌───────────┴───────┐
+                     │  Separate Cron    │
+                     │  Project          │
+                     │  (data collector) │
+                     └───────────────────┘
+```
+
+**Note:** Data collection is handled by a separate cron job running in another project.
+
+## API Endpoints
+
+### GET /api/history
+Retrieve historical composite rate data.
+
+**Query Parameters:**
+- `limit` (number): Maximum number of records to return
+- `range` (string): Time range - `2min`, `1hour`, `1day`, `1week`
+- `start` (ISO datetime): Start timestamp for custom range
+- `end` (ISO datetime): End timestamp for custom range
+
+**Example:**
+```bash
+curl "https://your-domain.vercel.app/api/history?range=1hour&limit=500"
+```
+
+### GET /api/stats
+Get statistics about stored data.
+
+**Response:**
+```json
+{
+  "counts": {
+    "last_2min": 120,
+    "last_hour": 3600,
+    "last_day": 86400,
+    "total": 500000
+  }
+}
+```
+
+**Note:** This project is read-only. Data collection is handled by a separate cron project that writes to the same database.
+
+## Local Development
+
+1. **Install dependencies:**
+```bash
+npm install
+```
+
+2. **Configure environment variables:**
+   Create a `.env.local` file:
+   ```
+   DATABASE_URL=your_neon_database_url
+   ```
+
+3. **Run database migrations:**
+```bash
+npm run migrate
+```
+
+4. **Test database connection:**
+```bash
+npm run test-db
+```
+
+5. **Start development server:**
+```bash
+vercel dev
+```
+
+6. **Open frontend:**
+   Navigate to `http://localhost:3000/public/index.html`
+
+## Vercel Deployment
+
+### First Time Setup
+
+1. **Link to Vercel project:**
+```bash
+vercel link
+```
+
+2. **Add environment variables:**
+```bash
+vercel env add DATABASE_URL
+# Use the same database URL as your cron project
+```
+
+3. **Deploy to production:**
+```bash
+vercel --prod
+```
+
+### Accessing Your App
+
+After deployment:
+- **Frontend Dashboard**: `https://your-domain.vercel.app/public/index.html`
+- **API Endpoints**: `https://your-domain.vercel.app/api/*`
+
+## Trading Session Transitions Explained
+
+**Important:** This dashboard monitors **4-minute transition windows** around session changes, NOT full trading sessions.
+
+The frontend displays data for four distinct session transition periods (all times in ET):
+
+1. **Pre-market - Regular** (3:58 AM – 4:02 AM ET)
+   - 4-minute window during early morning transition
+   - Pre-market to regular hours change
+
+2. **Overnight - Pre-market** (7:58 AM – 8:02 AM ET)
+   - 4-minute window capturing rate changes during transition
+   - Morning session change
+
+3. **Regular - Afterhours** (9:28 AM – 9:32 AM ET)
+   - 4-minute window during market opening
+   - Regular to after-hours transition
+
+4. **Afterhours - Pre-market** (3:58 PM – 4:02 PM ET)
+   - 4-minute window during closing transition
+   - End of day session change
+
+5. **Combined Transitions**
+   - All 4 transition windows merged (16 minutes total per day)
+   - Color-coded by transition for easy identification
+   - ⚠️ **Does NOT represent continuous trading data**
+
+## Database Schema
+
+**Table: `composite_rates`**
+```sql
+CREATE TABLE composite_rates (
+  id SERIAL PRIMARY KEY,
+  composite_rate NUMERIC NOT NULL,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  raw_data JSONB
+);
+```
+
+## Scripts
+
+- `npm run migrate` - Run database migrations
+- `npm run test-db` - Test database connection
+- `node scripts/clear-db.js` - Clear all data from database
+- `node scripts/query-range.js` - Query data for a specific range
+- `node scripts/query-raw-data.js` - Query raw API response data
+
+## Project Structure
+
+```
+monitor-sessions/
+├── api/
+│   ├── index.js           # Root redirect to frontend
+│   ├── history.js         # Historical data query endpoint
+│   └── stats.js           # Statistics endpoint
+├── lib/
+│   └── db.js              # Database connection and queries
+├── migrations/
+│   ├── 001_init.sql       # Initial database schema
+│   ├── 002_add_raw_data.sql
+│   └── run.js             # Migration runner
+├── public/
+│   └── index.html         # Trading sessions dashboard
+├── scripts/
+│   ├── clear-db.js        # Database utilities
+│   ├── query-range.js
+│   ├── query-raw-data.js
+│   └── test-db.js
+├── package.json
+├── vercel.json            # Vercel configuration
+└── README.md
+```
+
+## Troubleshooting
+
+### No Data in Charts
+- Verify the separate cron project is running and collecting data
+- Check database has data: `npm run test-db`
+- Verify timezone settings (charts use ET)
+- Confirm both projects use the same DATABASE_URL
+
+### Database Connection Issues
+- Test connection: `npm run test-db`
+- Verify `DATABASE_URL` is correct
+- Check Neon database is accessible
+
+### Frontend Not Loading
+- Access via `/public/index.html` path
+- Check browser console for errors
+- Verify API endpoints are responding
+
+## Tech Stack
+
+- **Frontend**: Vanilla JavaScript, Chart.js
+- **Backend**: Vercel Serverless Functions (Node.js)
+- **Database**: Neon PostgreSQL
+- **Deployment**: Vercel
+- **Cron**: Vercel Cron Jobs

@@ -1,0 +1,17 @@
+{
+  "name": "session-aware-stocks",
+  "version": "1.0.0",
+  "description": "Backend API for monitoring SEDA",
+  "scripts": {
+    "migrate": "node migrations/run.js",
+    "test-db": "node scripts/test-db.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.5",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.0"
+  }
+}
