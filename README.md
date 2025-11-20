@@ -11,12 +11,12 @@ A full-stack application that monitors the SEDA API endpoint, stores data in a d
 - ⏰ Data collection handled by separate cron project
 
 ### Frontend Dashboard
+- 🏦 **Multi-Asset Support** - Select from multiple tracked assets
+- ⚙️ **Dynamic Session Configuration** - Each asset has custom trading sessions
 - 📈 **Trading Session Transition Analysis** (select any day from the last 7 days)
-  - Overnight - Premarket: 3:58 AM – 4:02 AM ET (4-minute window)
-  - Premarket - Regular Hours: 9:28 AM – 9:32 AM ET (4-minute window)
-  - Regular Hours - After Hours: 3:58 PM – 4:02 PM ET (4-minute window)
-  - After Hours - Overnight: 7:58 PM – 8:02 PM ET (4-minute window)
-  - Combined Transitions View (all 4 windows merged - 16 minutes total)
+  - 4-minute windows around critical session transitions
+  - Sessions configured per asset (stocks, commodities, crypto, etc.)
+  - Combined Transitions View (all windows merged)
 - 🎨 Beautiful, modern UI with color-coded sessions
 - 📊 Real-time statistics (min, max, avg, data points)
 - 📅 Day selector dropdown for easy navigation (shows ET dates)
@@ -24,6 +24,7 @@ A full-stack application that monitors the SEDA API endpoint, stores data in a d
 - 🔄 One-click data reload
 - 🔍 **Double-click charts** to view detailed database records
 - 📥 **Export data** to CSV or JSON format
+- 📋 **Custom Sessions** - See [SESSIONS_CONFIG.md](./SESSIONS_CONFIG.md) for configuration guide
 
 ## Architecture
 
@@ -233,9 +234,13 @@ CREATE TABLE composite_rates (
 ```
 monitor-sessions/
 ├── api/
-│   ├── index.js           # Root redirect to frontend
+│   ├── index.js           # Root redirect to landing page
 │   ├── history.js         # Historical data query endpoint
+│   ├── sessions.js        # Session configuration API
+│   ├── tables.js          # Available tables API
 │   └── stats.js           # Statistics endpoint
+├── config/
+│   └── sessions.json      # Session definitions per asset
 ├── lib/
 │   └── db.js              # Database connection and queries
 ├── migrations/
@@ -243,7 +248,8 @@ monitor-sessions/
 │   ├── 002_add_raw_data.sql
 │   └── run.js             # Migration runner
 ├── public/
-│   └── index.html         # Trading sessions dashboard
+│   ├── index.html         # Trading sessions dashboard
+│   └── landing.html       # Asset selection page
 ├── scripts/
 │   ├── clear-db.js        # Database utilities
 │   ├── query-range.js
