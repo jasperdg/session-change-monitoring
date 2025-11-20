@@ -18,14 +18,17 @@ module.exports = async (req, res) => {
   }
   
   try {
-    // Query to get all tables that match the pattern (have similar schema)
+    // Query to get all tables that have the composite_rate column (indicating they're data tables)
     const result = await sql`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-        AND table_type = 'BASE TABLE'
-        AND table_name LIKE '%composite%'
-      ORDER BY table_name
+      SELECT DISTINCT t.table_name
+      FROM information_schema.tables t
+      JOIN information_schema.columns c 
+        ON t.table_name = c.table_name 
+        AND t.table_schema = c.table_schema
+      WHERE t.table_schema = 'public'
+        AND t.table_type = 'BASE TABLE'
+        AND c.column_name = 'composite_rate'
+      ORDER BY t.table_name
     `;
     
     const tables = result.map(row => row.table_name);
