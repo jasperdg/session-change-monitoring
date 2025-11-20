@@ -522,7 +522,7 @@
         const charts = [];
         let currentViewerData = []; // Store data for export
         let selectedRawData = null; // Store selected record for raw view
-        let selectedTable = 'composite_rates'; // Current selected table
+        let selectedTable = null; // Current selected table (set from URL or dropdown)
 
         function showError(message) {
             const errorContainer = document.getElementById('errorContainer');
@@ -1507,13 +1507,27 @@
         // Get table from URL parameter
         function getTableFromURL() {
             const params = new URLSearchParams(window.location.search);
-            return params.get('table') || 'composite_rates';
+            const tableParam = params.get('table');
+            console.log('🔍 Table from URL:', tableParam);
+            return tableParam;
         }
 
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', async () => {
-            // Get table from URL or use default
-            selectedTable = getTableFromURL();
+            console.log('📱 Page loaded, current URL:', window.location.href);
+            
+            // Get table from URL
+            const tableFromURL = getTableFromURL();
+            
+            if (!tableFromURL) {
+                // No table specified - redirect to landing page
+                console.warn('⚠️ No table parameter in URL, redirecting to landing page');
+                window.location.href = '/landing.html';
+                return;
+            }
+            
+            selectedTable = tableFromURL;
+            console.log('✅ Using table:', selectedTable);
             
             // Set it in the dropdown if it exists
             const selector = document.getElementById('assetSelector');

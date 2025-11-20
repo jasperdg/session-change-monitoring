@@ -1,5 +1,11 @@
 {
   "framework": null,
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/public/landing.html"
+    }
+  ]
 }
