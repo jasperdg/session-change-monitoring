@@ -1428,23 +1428,12 @@
             const select = document.getElementById('daySelector');
             const now = new Date();
             
-            // Get current date in asset's timezone
-            const localDateString = now.toLocaleString('en-US', {
-                timeZone: ASSET_TIMEZONE,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-            const [localMonth, localDay, localYear] = localDateString.split(/[/,\s]+/).map(s => s.trim());
-            const todayLocal = new Date(Date.UTC(
-                parseInt(localYear),
-                parseInt(localMonth) - 1,
-                parseInt(localDay),
-                0, 0, 0, 0
-            ));
+            // Get current date in UTC (consistent across all assets/timezones)
+            const todayUTC = new Date();
+            todayUTC.setUTCHours(0, 0, 0, 0);
             
             for (let i = 0; i < 7; i++) {
-                const date = new Date(todayLocal);
+                const date = new Date(todayUTC);
                 date.setUTCDate(date.getUTCDate() - i);
                 
                 const option = document.createElement('option');
@@ -1485,23 +1474,9 @@
                 const select = document.getElementById('daySelector');
                 const daysAgo = parseInt(select.value);
                 
-                // Get current date in asset's timezone
-                const now = new Date();
-                const localDateString = now.toLocaleString('en-US', {
-                    timeZone: ASSET_TIMEZONE,
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                });
-                
-                // Parse local date and go back daysAgo days
-                const [localMonth, localDay, localYear] = localDateString.split(/[/,\s]+/).map(s => s.trim());
-                const selectedDate = new Date(Date.UTC(
-                    parseInt(localYear),
-                    parseInt(localMonth) - 1,
-                    parseInt(localDay),
-                    0, 0, 0, 0
-                ));
+                // Get current date in UTC (consistent across all assets)
+                const selectedDate = new Date();
+                selectedDate.setUTCHours(0, 0, 0, 0);
                 selectedDate.setUTCDate(selectedDate.getUTCDate() - daysAgo);
                 
                 updateStatus('Loading trading sessions...');
