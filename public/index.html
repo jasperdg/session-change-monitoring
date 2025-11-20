@@ -458,6 +458,12 @@
                 <div class="status-indicator"></div>
                 <span id="statusText">Select a day to view data...</span>
             </div>
+            <div class="asset-selector" style="display: flex; align-items: center; gap: 10px;">
+                <label for="assetSelector">Asset:</label>
+                <select id="assetSelector" onchange="onAssetChange()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem;">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
             <div class="day-selector">
                 <label for="daySelector">Select Day:</label>
                 <select id="daySelector" onchange="loadSelectedDay()">
