@@ -24,6 +24,7 @@ module.exports = async (req, res) => {
     res.status(200).json({
       table,
       asset_name: tableConfig.asset_name,
+      timezone: tableConfig.timezone || 'America/New_York',
       sessions: tableConfig.sessions
     });
     
