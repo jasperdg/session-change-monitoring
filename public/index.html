@@ -1439,12 +1439,12 @@
             const todayLocal = new Date(Date.UTC(
                 parseInt(localYear),
                 parseInt(localMonth) - 1,
-                parseInt(etDay),
+                parseInt(localDay),
                 0, 0, 0, 0
             ));
             
             for (let i = 0; i < 7; i++) {
-                const date = new Date(todayET);
+                const date = new Date(todayLocal);
                 date.setUTCDate(date.getUTCDate() - i);
                 
                 const option = document.createElement('option');
