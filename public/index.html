@@ -522,6 +522,7 @@
         const charts = [];
         let currentViewerData = []; // Store data for export
         let selectedRawData = null; // Store selected record for raw view
+        let selectedTable = 'composite_rates'; // Current selected table
 
         function showError(message) {
             const errorContainer = document.getElementById('errorContainer');
@@ -589,7 +590,7 @@
         // Fetch data for a specific time range
         async function fetchSessionData(start, end) {
             try {
-                const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000`;
+                const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -601,6 +602,31 @@
             } catch (error) {
                 console.error('Error fetching session data:', error);
                 return [];
+            }
+        }
+
+        // Handle asset/table selection change
+        function onAssetChange() {
+            selectedTable = document.getElementById('assetSelector').value;
+            console.log('Selected table changed to:', selectedTable);
+            loadSelectedDay(); // Reload data with new table
+        }
+
+        // Populate asset selector with available tables (can be called after detecting tables)
+        function populateAssetSelector(tables) {
+            const selector = document.getElementById('assetSelector');
+            selector.innerHTML = '';
+            
+            tables.forEach(table => {
+                const option = document.createElement('option');
+                option.value = table;
+                option.textContent = table;
+                selector.appendChild(option);
+            });
+            
+            // Set first table as selected
+            if (tables.length > 0) {
+                selectedTable = tables[0];
             }
         }
 
@@ -1000,7 +1026,7 @@
                     endDate: new Date(endTime).toISOString()
                 });
                 
-                const url = `/api/history?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&limit=10000`;
+                const url = `/api/history?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
                 console.log('API URL:', url);
                 
                 const response = await fetch(url);

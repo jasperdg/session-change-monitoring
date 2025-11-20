@@ -26,6 +26,7 @@ module.exports = async (req, res) => {
     const timeRange = req.query.range; // 2min, 1hour, 1day, 1week
     const startTime = req.query.start;  // Optional: specific start timestamp
     const endTime = req.query.end;      // Optional: specific end timestamp
+    const tableName = req.query.table || 'composite_rates'; // Optional: table name (defaults to composite_rates)
     
     apiLog('info', 'History request received', {
       requestId,
@@ -33,6 +34,7 @@ module.exports = async (req, res) => {
       timeRange,
       startTime,
       endTime,
+      tableName,
       userAgent: req.headers['user-agent']
     });
     
@@ -46,7 +48,7 @@ module.exports = async (req, res) => {
       });
     }
     
-    let history = await getRecentRates(limit, timeRange, startTime, endTime);
+    let history = await getRecentRates(limit, timeRange, startTime, endTime, tableName);
     
     // Downsampling logic:
     // - IF querying broad time range (1day, 1week): downsample to 1000 points
