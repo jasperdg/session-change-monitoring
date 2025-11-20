@@ -1485,10 +1485,45 @@
             }
         }
 
+        // Load available tables from API
+        async function loadAvailableTables() {
+            try {
+                const response = await fetch('/api/tables');
+                if (!response.ok) {
+                    console.warn('Could not fetch tables, using default');
+                    return;
+                }
+                
+                const result = await response.json();
+                if (result.tables && result.tables.length > 0) {
+                    populateAssetSelector(result.tables);
+                }
+            } catch (error) {
+                console.warn('Error loading tables:', error);
+                // Silently fail and use default table
+            }
+        }
+
+        // Get table from URL parameter
+        function getTableFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('table') || 'composite_rates';
+        }
+
         // Initialize on page load
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Get table from URL or use default
+            selectedTable = getTableFromURL();
+            
+            // Set it in the dropdown if it exists
+            const selector = document.getElementById('assetSelector');
+            if (selector) {
+                selector.value = selectedTable;
+            }
+            
+            await loadAvailableTables(); // Load available tables for dropdown
             populateDaySelector();
-            loadSelectedDay();
+            await loadSelectedDay();
         });
     </script>
 </body>
