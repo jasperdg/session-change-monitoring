@@ -551,10 +551,19 @@
         function getUTCDateTimeForET(date, etTime) {
             const [hours, minutes] = etTime.split(':').map(Number);
             
+            console.log(`🕐 Converting ET to UTC:`, {
+                inputDate: date.toISOString ? date.toISOString() : date.toString(),
+                etTime: etTime,
+                etHours: hours,
+                etMinutes: minutes
+            });
+            
             // Get date components (date is in UTC from our selector)
             const year = date.getUTCFullYear();
             const month = date.getUTCMonth();
             const day = date.getUTCDate();
+            
+            console.log(`  Date components: ${year}-${month+1}-${day}`);
             
             // Determine ET offset by testing what hour it is in ET when it's 12:00 UTC
             const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
@@ -571,12 +580,12 @@
             // In EDT (summer): UTC 12:00 = 08:00 ET (offset 4)
             const etOffset = (12 - etHour);
             
-            console.log(`Date ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} ${etTime} ET: UTC 12:00 = ${etHourString} ET, offset = ${etOffset}`);
+            console.log(`  UTC 12:00 = ${etHourString} ET, offset = ${etOffset}`);
             
             // Create UTC timestamp: add ET offset hours
             const utcDate = new Date(Date.UTC(year, month, day, hours + etOffset, minutes, 0));
             
-            console.log(`  Result: ${etTime} ET = ${utcDate.toISOString()}`);
+            console.log(`  ✅ Result: ${etTime} ET on ${year}-${month+1}-${day} = ${utcDate.toISOString()}`);
             
             return utcDate.toISOString();
         }
