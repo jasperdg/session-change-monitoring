@@ -1357,7 +1357,7 @@
 
         // Populate day selector dropdown
         function populateDaySelector() {
-            const select = document.getElementById('daySelect');
+            const select = document.getElementById('daySelector');
             const now = new Date();
             
             // Get current date in ET timezone
@@ -1414,7 +1414,7 @@
             charts.length = 0;
 
             try {
-                const select = document.getElementById('daySelect');
+                const select = document.getElementById('daySelector');
                 const daysAgo = parseInt(select.value);
                 
                 // Get current date in ET timezone
