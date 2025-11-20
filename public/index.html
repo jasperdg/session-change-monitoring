@@ -458,12 +458,6 @@
                 <div class="status-indicator"></div>
                 <span id="statusText">Select a day to view data...</span>
             </div>
-            <div class="asset-selector" style="display: flex; align-items: center; gap: 10px;">
-                <label for="assetSelector">Asset:</label>
-                <select id="assetSelector" onchange="onAssetChange()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem;">
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-            </div>
             <div class="day-selector">
                 <label for="daySelector">Select Day:</label>
                 <select id="daySelector" onchange="loadSelectedDay()">
@@ -471,6 +465,7 @@
                 </select>
             </div>
             <button onclick="loadSelectedDay()">🔄 Reload</button>
+            <button onclick="window.location.href='/landing.html'" style="background: #6b7280;">← Back to Assets</button>
         </div>
 
         <div id="errorContainer"></div>
@@ -624,30 +619,7 @@
             }
         }
 
-        // Handle asset/table selection change
-        function onAssetChange() {
-            selectedTable = document.getElementById('assetSelector').value;
-            console.log('Selected table changed to:', selectedTable);
-            loadSelectedDay(); // Reload data with new table
-        }
-
-        // Populate asset selector with available tables (can be called after detecting tables)
-        function populateAssetSelector(tables) {
-            const selector = document.getElementById('assetSelector');
-            selector.innerHTML = '';
-            
-            tables.forEach(table => {
-                const option = document.createElement('option');
-                option.value = table;
-                option.textContent = table;
-                selector.appendChild(option);
-            });
-            
-            // Set first table as selected
-            if (tables.length > 0) {
-                selectedTable = tables[0];
-            }
-        }
+        // Asset selector removed - users select from landing page instead
 
         // Create a chart for a session
         function createSessionChart(containerId, sessionName, sessionTime, data, color) {
@@ -1554,13 +1526,13 @@
             selectedTable = tableFromURL;
             console.log('✅ Using table:', selectedTable);
             
-            // Set it in the dropdown if it exists
-            const selector = document.getElementById('assetSelector');
-            if (selector) {
-                selector.value = selectedTable;
+            // Update page title to show current table
+            document.title = `${selectedTable} - Trading Session Monitor`;
+            const header = document.querySelector('.header h1');
+            if (header) {
+                header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${selectedTable}</span>`;
             }
             
-            await loadAvailableTables(); // Load available tables for dropdown
             populateDaySelector();
             await loadSelectedDay();
         });
