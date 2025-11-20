@@ -513,12 +513,9 @@
     </div>
 
     <script>
-        const TRADING_SESSIONS = {
-            overnight: { name: 'Overnight - Premarket', startTime: '03:58', endTime: '04:02', color: '#8b5cf6' },
-            premarket: { name: 'Premarket - Regular Hours', startTime: '09:28', endTime: '09:32', color: '#ec4899' },
-            regular: { name: 'Regular Hours - After Hours', startTime: '15:58', endTime: '16:02', color: '#10b981' },
-            afterhours: { name: 'After Hours - Overnight', startTime: '19:58', endTime: '20:02', color: '#f59e0b' }
-        };
+        // Dynamic session configuration - loaded from API based on selected table
+        let TRADING_SESSIONS = {};
+        let ASSET_NAME = '';
 
         const charts = [];
         let currentViewerData = []; // Store data for export
@@ -585,9 +582,58 @@
             return utcDate.toISOString();
         }
 
+        // Load session configuration for the selected table
+        async function loadSessionConfig(tableName) {
+            try {
+                const response = await fetch(`/api/sessions?table=${tableName}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const config = await response.json();
+                console.log('📋 Loaded session config for', tableName, ':', config);
+                
+                // Convert sessions array to object keyed by session key
+                TRADING_SESSIONS = {};
+                config.sessions.forEach(session => {
+                    TRADING_SESSIONS[session.key] = {
+                        name: session.name,
+                        startTime: session.start_time,
+                        endTime: session.end_time,
+                        color: session.color
+                    };
+                });
+                
+                ASSET_NAME = config.asset_name;
+                
+                // Update page title with asset name
+                document.title = `${ASSET_NAME} - Trading Session Monitor`;
+                const header = document.querySelector('.header h1');
+                if (header) {
+                    header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${ASSET_NAME}</span>`;
+                }
+                
+                return config;
+            } catch (error) {
+                console.error('❌ Failed to load session config:', error);
+                // Fallback to default if config fails
+                TRADING_SESSIONS = {
+                    session1: { name: 'Session Transition 1', startTime: '09:28', endTime: '09:32', color: '#3b82f6' },
+                    session2: { name: 'Session Transition 2', startTime: '15:58', endTime: '16:02', color: '#10b981' }
+                };
+                ASSET_NAME = tableName || 'Unknown Asset';
+                throw error;
+            }
+        }
+
         // Get session time range for a specific day
         function getSessionTimeRange(date, session) {
             const sessionInfo = TRADING_SESSIONS[session];
+            if (!sessionInfo) {
+                console.error('❌ Session not found:', session);
+                return null;
+            }
+            
             let startDateTime, endDateTime;
 
             // All sessions now occur on the same day
@@ -1526,11 +1572,11 @@
             selectedTable = tableFromURL;
             console.log('✅ Using table:', selectedTable);
             
-            // Update page title to show current table
-            document.title = `${selectedTable} - Trading Session Monitor`;
-            const header = document.querySelector('.header h1');
-            if (header) {
-                header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${selectedTable}</span>`;
+            // Load session configuration for this table
+            try {
+                await loadSessionConfig(selectedTable);
+            } catch (error) {
+                console.error('⚠️ Failed to load session config, using defaults');
             }
             
             populateDaySelector();
