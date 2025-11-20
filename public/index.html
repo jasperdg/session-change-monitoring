@@ -392,6 +392,58 @@
             font-style: italic;
         }
 
+        .outliers-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .outliers-section h2 {
+            color: #374151;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .outliers-description {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+
+        .outliers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .outlier-chart {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .outlier-chart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .outlier-chart canvas {
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .outliers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .raw-data-section {
             margin-top: 20px;
             padding: 15px;
@@ -471,6 +523,28 @@
         <div id="errorContainer"></div>
         <div id="loadingContainer" class="loading">Loading trading session data...</div>
         <div id="chartsContainer"></div>
+        
+        <!-- Daily Outliers Section -->
+        <div id="outliersSection" class="outliers-section" style="display: none;">
+            <h2>Daily Outliers - Min/Max Peaks</h2>
+            <p class="outliers-description">Showing lowest and highest composite rates for the selected day with 1 minute of surrounding data</p>
+            <div class="outliers-grid">
+                <div class="outlier-chart" id="lowest-outlier">
+                    <div class="chart-header">
+                        <div class="chart-title">Lowest Rate</div>
+                        <div class="chart-stats" id="lowest-stats"></div>
+                    </div>
+                    <canvas id="lowest-chart"></canvas>
+                </div>
+                <div class="outlier-chart" id="highest-outlier">
+                    <div class="chart-header">
+                        <div class="chart-title">Highest Rate</div>
+                        <div class="chart-stats" id="highest-stats"></div>
+                    </div>
+                    <canvas id="highest-chart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Data Viewer Modal -->
@@ -522,6 +596,41 @@
         let currentViewerData = []; // Store data for export
         let selectedRawData = null; // Store selected record for raw view
         let selectedTable = null; // Current selected table (set from URL or dropdown)
+        
+        // Vercel Protection Bypass Token
+        // To get your token: https://vercel.com/jasperdgs-projects/monitor-sessions/settings/deployment-protection
+        // Scroll to "Protection Bypass for Automation" and copy your token
+        const VERCEL_BYPASS_TOKEN = 'xM2SzOjpFAyrLFn1oGSAjBnWdJaTomm1'; // Replace with your actual token
+        
+        // Helper function to fetch with bypass token
+        async         function authenticatedFetch(url, options = {}) {
+            const headers = {
+                ...options.headers
+            };
+            
+            // Add bypass token if configured
+            if (VERCEL_BYPASS_TOKEN && VERCEL_BYPASS_TOKEN !== 'YOUR_BYPASS_TOKEN_HERE') {
+                headers['x-vercel-protection-bypass'] = VERCEL_BYPASS_TOKEN;
+            }
+            
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        // Format time in a specific timezone
+        function formatTimeWithTimezone(date, timezone) {
+            return date.toLocaleString('en-US', {
+                timeZone: timezone,
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
 
         function showError(message) {
             const errorContainer = document.getElementById('errorContainer');
@@ -593,7 +702,7 @@
         // Load session configuration for the selected table
         async function loadSessionConfig(tableName) {
             try {
-                const response = await fetch(`/api/sessions?table=${tableName}`);
+                const response = await authenticatedFetch(`/api/sessions?table=${tableName}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -661,7 +770,7 @@
                 console.log('📊 Fetching data with table:', selectedTable);
                 const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
                 console.log('📡 API Request:', url);
-                const response = await fetch(url);
+                const response = await authenticatedFetch(url);
                 
                 if (!response.ok) {
                     console.error('❌ API Error:', response.status, response.statusText);
@@ -1092,7 +1201,7 @@
                 const url = `/api/history?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
                 console.log('API URL:', url);
                 
-                const response = await fetch(url);
+                const response = await authenticatedFetch(url);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1459,6 +1568,244 @@
             }
         }
 
+        // Fetch outliers data from API
+        async function fetchOutliers(date, tableName) {
+            const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const url = `/api/outliers?date=${dateStr}&table=${encodeURIComponent(tableName)}`;
+            
+            console.log('📊 Fetching outliers:', { date: dateStr, table: tableName });
+            
+            const response = await authenticatedFetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            }
+            
+            const data = await response.json();
+            console.log('✅ Outliers received:', data);
+            return data;
+        }
+
+        // Create outlier chart (similar to session chart but for outliers)
+        function createOutlierChart(canvasId, data, peakValue, title, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Sort data by timestamp (oldest to newest)
+            const sortedData = [...data].sort((a, b) => 
+                new Date(a.timestamp) - new Date(b.timestamp)
+            );
+            
+            const labels = [];
+            const values = [];
+            const timestamps = [];
+            const pointColors = [];
+            const pointRadii = [];
+            
+            sortedData.forEach(item => {
+                const date = new Date(item.timestamp);
+                const localTime = formatTimeWithTimezone(date, ASSET_TIMEZONE);
+                labels.push(localTime);
+                values.push(parseFloat(item.composite_rate));
+                timestamps.push(item.timestamp);
+                
+                // Highlight the peak point
+                if (parseFloat(item.composite_rate) === parseFloat(peakValue)) {
+                    pointColors.push('#fbbf24'); // Yellow/gold for peak
+                    pointRadii.push(8);
+                } else {
+                    pointColors.push(color);
+                    pointRadii.push(3);
+                }
+            });
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: values,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: pointColors,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Rate: ${context.parsed.y.toFixed(6)}`;
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    if (idx < timestamps.length) {
+                                        const date = new Date(timestamps[idx]);
+                                        const tzTime = formatTimeWithTimezone(date, ASSET_TIMEZONE);
+                                        return `Time: ${tzTime}`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: (() => {
+                                    // Get timezone abbreviation
+                                    const testDate = new Date();
+                                    const tzParts = testDate.toLocaleString('en-US', {
+                                        timeZone: ASSET_TIMEZONE,
+                                        timeZoneName: 'short'
+                                    }).split(' ');
+                                    const tzAbbr = tzParts[tzParts.length - 1];
+                                    return `Time (${tzAbbr})`;
+                                })()
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Composite Rate'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Add double-click handler for detailed view
+            ctx.canvas.addEventListener('dblclick', (event) => {
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                if (points.length > 0) {
+                    const dataIndex = points[0].index;
+                    
+                    // Find 5 before and 5 after
+                    const startIdx = Math.max(0, dataIndex - 5);
+                    const endIdx = Math.min(sortedData.length - 1, dataIndex + 5);
+                    
+                    const startTime = sortedData[startIdx].timestamp;
+                    const endTime = sortedData[endIdx].timestamp;
+                    
+                    console.log('🔍 Double-click on outlier chart:', {
+                        dataIndex,
+                        startIdx,
+                        endIdx,
+                        startTime,
+                        endTime
+                    });
+                    
+                    showDetailedDataViewer(startTime, endTime);
+                }
+            });
+            
+            charts.push(chart);
+            return chart;
+        }
+
+        // Load and display outliers for the selected day
+        async function loadOutliers(selectedDate) {
+            try {
+                const outliersSection = document.getElementById('outliersSection');
+                const lowestStats = document.getElementById('lowest-stats');
+                const highestStats = document.getElementById('highest-stats');
+                
+                // Fetch outliers data
+                const outliers = await fetchOutliers(selectedDate, selectedTable);
+                
+                // Check if we have any outlier data
+                if (!outliers.lowest && !outliers.highest) {
+                    outliersSection.style.display = 'none';
+                    console.log('ℹ️ No outlier data available for this day');
+                    return;
+                }
+                
+                // Show the outliers section
+                outliersSection.style.display = 'block';
+                
+                // Create lowest rate chart
+                if (outliers.lowest) {
+                    const lowestPeak = outliers.lowest.peak;
+                    const lowestContext = outliers.lowest.context;
+                    
+                    lowestStats.innerHTML = `
+                        <div>Peak: <strong>${parseFloat(lowestPeak.composite_rate).toFixed(6)}</strong></div>
+                        <div>Time: <strong>${formatTimeWithTimezone(new Date(lowestPeak.timestamp), ASSET_TIMEZONE)}</strong></div>
+                        <div>Data Points: <strong>${lowestContext.length}</strong></div>
+                    `;
+                    
+                    createOutlierChart(
+                        'lowest-chart',
+                        lowestContext,
+                        lowestPeak.composite_rate,
+                        'Lowest Rate',
+                        '#ef4444' // Red
+                    );
+                } else {
+                    lowestStats.innerHTML = '<div style="color: #6b7280;">No data available</div>';
+                }
+                
+                // Create highest rate chart
+                if (outliers.highest) {
+                    const highestPeak = outliers.highest.peak;
+                    const highestContext = outliers.highest.context;
+                    
+                    highestStats.innerHTML = `
+                        <div>Peak: <strong>${parseFloat(highestPeak.composite_rate).toFixed(6)}</strong></div>
+                        <div>Time: <strong>${formatTimeWithTimezone(new Date(highestPeak.timestamp), ASSET_TIMEZONE)}</strong></div>
+                        <div>Data Points: <strong>${highestContext.length}</strong></div>
+                    `;
+                    
+                    createOutlierChart(
+                        'highest-chart',
+                        highestContext,
+                        highestPeak.composite_rate,
+                        'Highest Rate',
+                        '#10b981' // Green
+                    );
+                } else {
+                    highestStats.innerHTML = '<div style="color: #6b7280;">No data available</div>';
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading outliers:', error);
+                document.getElementById('outliersSection').style.display = 'none';
+            }
+        }
+
         // Load data for the selected day
         async function loadSelectedDay() {
             hideError();
@@ -1469,6 +1816,17 @@
             // Destroy existing charts
             charts.forEach(chart => chart.destroy());
             charts.length = 0;
+            
+            // Hide outliers section and clear canvases
+            document.getElementById('outliersSection').style.display = 'none';
+            const lowestCanvas = document.getElementById('lowest-chart');
+            const highestCanvas = document.getElementById('highest-chart');
+            if (lowestCanvas) {
+                lowestCanvas.width = lowestCanvas.width; // Reset canvas
+            }
+            if (highestCanvas) {
+                highestCanvas.width = highestCanvas.width; // Reset canvas
+            }
 
             try {
                 const select = document.getElementById('daySelector');
@@ -1511,6 +1869,10 @@
                     createFullDayChart(fullDayCanvasId, selectedDate, allSessionsData);
                 }
 
+                // Load outliers for the selected day
+                updateStatus('Loading daily outliers...');
+                await loadOutliers(selectedDate);
+                
                 document.getElementById('loadingContainer').style.display = 'none';
                 
                 const dateStr = selectedDate.toLocaleDateString('en-US', { 
@@ -1531,7 +1893,7 @@
         // Load available tables from API
         async function loadAvailableTables() {
             try {
-                const response = await fetch('/api/tables');
+                const response = await authenticatedFetch('/api/tables');
                 if (!response.ok) {
                     console.warn('Could not fetch tables, using default');
                     return;
