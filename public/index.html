@@ -605,6 +605,7 @@
         // Fetch data for a specific time range
         async function fetchSessionData(start, end) {
             try {
+                console.log('📊 Fetching data with table:', selectedTable);
                 const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
                 console.log('📡 API Request:', url);
                 const response = await fetch(url);
@@ -1531,7 +1532,8 @@
         function getTableFromURL() {
             const params = new URLSearchParams(window.location.search);
             const tableParam = params.get('table');
-            console.log('🔍 Table from URL:', tableParam);
+            console.log('🔍 URL Search Params:', window.location.search);
+            console.log('🔍 Table parameter:', tableParam);
             return tableParam;
         }
 
