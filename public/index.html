@@ -516,6 +516,7 @@
         // Dynamic session configuration - loaded from API based on selected table
         let TRADING_SESSIONS = {};
         let ASSET_NAME = '';
+        let ASSET_TIMEZONE = 'America/New_York'; // Default to ET
 
         const charts = [];
         let currentViewerData = []; // Store data for export
@@ -540,14 +541,16 @@
         }
 
         // Convert ET time to UTC for API query
-        function getUTCDateTimeForET(date, etTime) {
-            const [hours, minutes] = etTime.split(':').map(Number);
+        // Convert local time in a specific timezone to UTC
+        function getUTCDateTime(date, localTime, timezone) {
+            const [hours, minutes] = localTime.split(':').map(Number);
             
-            console.log(`🕐 Converting ET to UTC:`, {
+            console.log(`🕐 Converting ${timezone} to UTC:`, {
                 inputDate: date.toISOString ? date.toISOString() : date.toString(),
-                etTime: etTime,
-                etHours: hours,
-                etMinutes: minutes
+                localTime: localTime,
+                timezone: timezone,
+                hours: hours,
+                minutes: minutes
             });
             
             // Get date components (date is in UTC from our selector)
@@ -555,31 +558,36 @@
             const month = date.getUTCMonth();
             const day = date.getUTCDate();
             
-            console.log(`  Date components: ${year}-${month+1}-${day}`);
+            console.log(`  Date components: ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
             
-            // Determine ET offset by testing what hour it is in ET when it's 12:00 UTC
+            // Determine timezone offset by testing what hour it is in local timezone when it's 12:00 UTC
             const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
-            const etHourString = testDate.toLocaleString('en-US', {
-                timeZone: 'America/New_York',
+            const localHourString = testDate.toLocaleString('en-US', {
+                timeZone: timezone,
                 hour12: false,
                 hour: '2-digit',
                 minute: '2-digit'
             });
             
-            const etHour = parseInt(etHourString.split(':')[0]);
+            const localHour = parseInt(localHourString.split(':')[0]);
             
-            // In EST (winter): UTC 12:00 = 07:00 ET (offset 5)
-            // In EDT (summer): UTC 12:00 = 08:00 ET (offset 4)
-            const etOffset = (12 - etHour);
+            // Calculate offset: UTC 12:00 = localHour in target timezone
+            // offset = hours we need to add to local time to get UTC
+            const tzOffset = (12 - localHour);
             
-            console.log(`  UTC 12:00 = ${etHourString} ET, offset = ${etOffset}`);
+            console.log(`  UTC 12:00 = ${localHourString} ${timezone}, offset = ${tzOffset}`);
             
-            // Create UTC timestamp: add ET offset hours
-            const utcDate = new Date(Date.UTC(year, month, day, hours + etOffset, minutes, 0));
+            // Create UTC timestamp: add timezone offset hours
+            const utcDate = new Date(Date.UTC(year, month, day, hours + tzOffset, minutes, 0));
             
-            console.log(`  ✅ Result: ${etTime} ET on ${year}-${month+1}-${day} = ${utcDate.toISOString()}`);
+            console.log(`  ✅ Result: ${localTime} ${timezone} on ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} = ${utcDate.toISOString()}`);
             
             return utcDate.toISOString();
+        }
+        
+        // Backward compatibility wrapper (deprecated)
+        function getUTCDateTimeForET(date, etTime) {
+            return getUTCDateTime(date, etTime, ASSET_TIMEZONE);
         }
 
         // Load session configuration for the selected table
@@ -605,12 +613,15 @@
                 });
                 
                 ASSET_NAME = config.asset_name;
+                ASSET_TIMEZONE = config.timezone || 'America/New_York';
                 
-                // Update page title with asset name
+                console.log(`⏰ Asset timezone: ${ASSET_TIMEZONE}`);
+                
+                // Update page title with asset name and timezone
                 document.title = `${ASSET_NAME} - Trading Session Monitor`;
                 const header = document.querySelector('.header h1');
                 if (header) {
-                    header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${ASSET_NAME}</span>`;
+                    header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${ASSET_NAME} (${ASSET_TIMEZONE})</span>`;
                 }
                 
                 return config;
@@ -622,6 +633,7 @@
                     session2: { name: 'Session Transition 2', startTime: '15:58', endTime: '16:02', color: '#10b981' }
                 };
                 ASSET_NAME = tableName || 'Unknown Asset';
+                ASSET_TIMEZONE = 'America/New_York';
                 throw error;
             }
         }
@@ -636,9 +648,9 @@
             
             let startDateTime, endDateTime;
 
-            // All sessions now occur on the same day
-            startDateTime = getUTCDateTimeForET(date, sessionInfo.startTime);
-            endDateTime = getUTCDateTimeForET(date, sessionInfo.endTime);
+            // Convert session times from asset timezone to UTC
+            startDateTime = getUTCDateTime(date, sessionInfo.startTime, ASSET_TIMEZONE);
+            endDateTime = getUTCDateTime(date, sessionInfo.endTime, ASSET_TIMEZONE);
 
             return { start: startDateTime, end: endDateTime };
         }
@@ -736,9 +748,9 @@
                                         const timestamp = timestamps[dataIndex];
                                         const date = new Date(timestamp);
                                         
-                                        // Format in ET timezone
-                                        const etTime = date.toLocaleString('en-US', {
-                                            timeZone: 'America/New_York',
+                                        // Format in asset's timezone
+                                        const localTime = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
                                             year: 'numeric',
                                             month: 'short',
                                             day: 'numeric',
@@ -748,7 +760,14 @@
                                             hour12: true
                                         });
                                         
-                                        return `${etTime} ET`;
+                                        // Get timezone abbreviation
+                                        const tzParts = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            timeZoneName: 'short'
+                                        }).split(' ');
+                                        const tzAbbr = tzParts[tzParts.length - 1];
+                                        
+                                        return `${localTime} ${tzAbbr}`;
                                     }
                                     return context[0].label;
                                 },
@@ -943,9 +962,9 @@
                                         const timestamp = timestamps[dataIndex];
                                         const date = new Date(timestamp);
                                         
-                                        // Format in ET timezone
-                                        const etTime = date.toLocaleString('en-US', {
-                                            timeZone: 'America/New_York',
+                                        // Format in asset's timezone
+                                        const localTime = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
                                             year: 'numeric',
                                             month: 'short',
                                             day: 'numeric',
@@ -955,7 +974,14 @@
                                             hour12: true
                                         });
                                         
-                                        return `${etTime} ET`;
+                                        // Get timezone abbreviation
+                                        const tzParts = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            timeZoneName: 'short'
+                                        }).split(' ');
+                                        const tzAbbr = tzParts[tzParts.length - 1];
+                                        
+                                        return `${localTime} ${tzAbbr}`;
                                     }
                                     return context[0].label;
                                 },
@@ -1402,17 +1428,17 @@
             const select = document.getElementById('daySelector');
             const now = new Date();
             
-            // Get current date in ET timezone
-            const etDateString = now.toLocaleString('en-US', {
-                timeZone: 'America/New_York',
+            // Get current date in asset's timezone
+            const localDateString = now.toLocaleString('en-US', {
+                timeZone: ASSET_TIMEZONE,
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit'
             });
-            const [etMonth, etDay, etYear] = etDateString.split(/[/,\s]+/).map(s => s.trim());
-            const todayET = new Date(Date.UTC(
-                parseInt(etYear),
-                parseInt(etMonth) - 1,
+            const [localMonth, localDay, localYear] = localDateString.split(/[/,\s]+/).map(s => s.trim());
+            const todayLocal = new Date(Date.UTC(
+                parseInt(localYear),
+                parseInt(localMonth) - 1,
                 parseInt(etDay),
                 0, 0, 0, 0
             ));
@@ -1459,21 +1485,21 @@
                 const select = document.getElementById('daySelector');
                 const daysAgo = parseInt(select.value);
                 
-                // Get current date in ET timezone
+                // Get current date in asset's timezone
                 const now = new Date();
-                const etDateString = now.toLocaleString('en-US', {
-                    timeZone: 'America/New_York',
+                const localDateString = now.toLocaleString('en-US', {
+                    timeZone: ASSET_TIMEZONE,
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit'
                 });
                 
-                // Parse ET date and go back daysAgo days
-                const [etMonth, etDay, etYear] = etDateString.split(/[/,\s]+/).map(s => s.trim());
+                // Parse local date and go back daysAgo days
+                const [localMonth, localDay, localYear] = localDateString.split(/[/,\s]+/).map(s => s.trim());
                 const selectedDate = new Date(Date.UTC(
-                    parseInt(etYear),
-                    parseInt(etMonth) - 1,
-                    parseInt(etDay),
+                    parseInt(localYear),
+                    parseInt(localMonth) - 1,
+                    parseInt(localDay),
                     0, 0, 0, 0
                 ));
                 selectedDate.setUTCDate(selectedDate.getUTCDate() - daysAgo);

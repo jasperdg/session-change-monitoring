@@ -1,6 +1,7 @@
 {
   "injective_nvda": {
     "asset_name": "Injective NVDA",
+    "timezone": "America/New_York",
     "sessions": [
       {
         "key": "overnight",
@@ -34,6 +35,7 @@
   },
   "stratium_gold": {
     "asset_name": "Stratium Gold",
+    "timezone": "America/New_York",
     "sessions": [
       {
         "key": "asian_open",
@@ -67,6 +69,7 @@
   },
   "trove_popmart": {
     "asset_name": "Trove Popmart",
+    "timezone": "Asia/Hong_Kong",
     "sessions": [
       {
         "key": "hk_premarket",
@@ -100,6 +103,7 @@
   },
   "_default": {
     "asset_name": "Unknown Asset",
+    "timezone": "America/New_York",
     "sessions": [
       {
         "key": "session1",

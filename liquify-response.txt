@@ -1,0 +1,55 @@
+================================================================================
+LIQUIFY RESPONSE - PROBLEMATIC DATA ONLY
+================================================================================
+
+⚠️  ISSUE #1: ABNORMAL RESPONSE SIZE
+================================================================================
+RECORD ID: 1382310
+Time: 11/20/2025, 08:41:54 ET / 11/20/2025, 14:41:54 CET
+Composite Rate: 87188.84350
+Active Session: PREMARKET
+================================================================================
+
+PROBLEM: Single Pyth ID returned 43 price entries (expected 1-2)
+
+Pyth ID: 0x61c4ca5b9731a79e285a01e24432d57d89f0ecdd4cd7828196ca8992d5eafef6
+Fetcher: Liquify Pyth fetcher
+Response: PythPriceResponse { 
+  parsed: [43 PythPriceParsedResponse entries - ALL with publish_time: 1763646112]
+  - Entry 1: price: "9177773000000", expo: -8
+  - Entry 2: price: "301195676006", expo: -8
+  - Entry 3: price: "89952956809", expo: -8
+  - Entry 4: price: "726029300", expo: -8
+  - Entry 5: price: "14149866154", expo: -8
+  - Entry 6: price: "171592357", expo: -8
+  - Entry 7: price: "3909959091", expo: -8
+  - Entry 8: price: "1365036464", expo: -8
+  - Entry 9: price: "48918", expo: -10
+  - Entry 10: price: "15791207", expo: -8
+  ... (33 more entries)
+  - Entry 43: price: "9177773000000", expo: -8 (duplicate of Entry 1)
+}
+
+Expected behavior: Should return 1 price entries
+Actual behavior: Returned 43 entries, all with identical timestamp
+Impact: Excessive gas consumption and potentially incorrect composite rate
+
+URL queried: http://pyth-liquify.proxy.testnet.seda.xyz/proxy/price/latest?ids[]=0x61c4ca5b9731a79e285a01e24432d57d89f0ecdd4cd7828196ca8992d5eafef6
+
+
+================================================================================
+SUMMARY FOR LIQUIFY
+================================================================================
+
+Two distinct issues identified:
+
+1. OVERSIZED RESPONSE (Record 1382310)
+   - Expected: 1 price entries per Pyth ID query
+   - Received: 43 entries from single query
+   - All entries share same publish_time
+   - Last entry duplicates first entry
+
+Pyth IDs involved:
+  - 0x61c4ca5b9731a79e285a01e24432d57d89f0ecdd4cd7828196ca8992d5eafef6 (oversized response)
+================================================================================
+
