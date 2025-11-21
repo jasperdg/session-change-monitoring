@@ -33,6 +33,40 @@
       }
     ]
   },
+  "injective_mstr": {
+    "asset_name": "Injective MSTR",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
   "stratium_gold": {
     "asset_name": "Stratium Gold",
     "timezone": "America/New_York",

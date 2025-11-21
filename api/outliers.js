@@ -1,4 +1,6 @@
 const { getDailyOutliers } = require('../lib/db');
+const fs = require('fs');
+const path = require('path');
 
 function apiLog(level, message, data = {}) {
   const timestamp = new Date().toISOString();
@@ -42,14 +44,27 @@ module.exports = async (req, res) => {
     
     const tableName = table || 'composite_rates';
     
+    // Load timezone from sessions config
+    let timezone = 'UTC';
+    try {
+      const configPath = path.join(process.cwd(), 'config', 'sessions.json');
+      const configData = fs.readFileSync(configPath, 'utf8');
+      const config = JSON.parse(configData);
+      const assetConfig = config[tableName] || config['_default'] || {};
+      timezone = assetConfig.timezone || 'UTC';
+    } catch (error) {
+      apiLog('warn', 'Failed to load timezone from config, using UTC', { error: error.message });
+    }
+    
     apiLog('info', 'Outliers request received', {
       requestId,
       table: tableName,
       date,
+      timezone,
       userAgent: req.headers['user-agent']
     });
     
-    const outliers = await getDailyOutliers(tableName, date);
+    const outliers = await getDailyOutliers(tableName, date, timezone);
     
     const duration = Date.now() - requestStart;
     apiLog('info', 'Outliers request successful', {
