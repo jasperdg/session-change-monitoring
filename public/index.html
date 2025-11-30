@@ -804,6 +804,7 @@
             const labels = sortedData.map(d => {
                 const date = new Date(d.timestamp);
                 return date.toLocaleTimeString('en-US', { 
+                    timeZone: ASSET_TIMEZONE,
                     hour: '2-digit', 
                     minute: '2-digit',
                     second: '2-digit',
@@ -1016,6 +1017,7 @@
             const labels = allData.map(d => {
                 const date = new Date(d.timestamp);
                 return date.toLocaleTimeString('en-US', { 
+                    timeZone: ASSET_TIMEZONE,
                     hour: '2-digit', 
                     minute: '2-digit',
                     hour12: false 

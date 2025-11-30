@@ -67,8 +67,178 @@
       }
     ]
   },
+  "injective_nvda_v2": {
+    "asset_name": "Injective NVDA V2",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "injective_mstr_v2": {
+    "asset_name": "Injective MSTR V2",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "injective_nvda_session_switch_update": {
+    "asset_name": "Injective NVDA no stale",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "injective_mstr_session_switch_update": {
+    "asset_name": "Injective MSTR no stale",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
   "stratium_gold": {
     "asset_name": "Stratium Gold",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "normal_open",
+        "name": "normal open",
+        "start_time": "00:00",
+        "end_time": "00:04",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "break_start",
+        "name": "break start",
+        "start_time": "16:58",
+        "end_time": "17:02",
+        "color": "#10b981"
+      },
+      {
+        "key": "break_end",
+        "name": "break end",
+        "start_time": "17:58",
+        "end_time": "18:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "normal_end",
+        "name": "normal end",
+        "start_time": "23:58",
+        "end_time": "23:59:59",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "stratium_silver": {
+    "asset_name": "Stratium Silver",
     "timezone": "America/New_York",
     "sessions": [
       {
