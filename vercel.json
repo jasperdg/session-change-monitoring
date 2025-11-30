@@ -6,10 +6,6 @@
     {
       "source": "/",
       "destination": "/public/landing.html"
-    },
-    {
-      "source": "/index.html",
-      "destination": "/public/index.html"
     }
   ]
 }
