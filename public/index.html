@@ -533,19 +533,19 @@
                     <div class="chart-header">
                         <div class="chart-title">Lowest Rate</div>
                         <div class="chart-stats" id="lowest-stats"></div>
-                    </div>
+            </div>
                     <canvas id="lowest-chart"></canvas>
-                </div>
+            </div>
                 <div class="outlier-chart" id="highest-outlier">
                     <div class="chart-header">
                         <div class="chart-title">Highest Rate</div>
                         <div class="chart-stats" id="highest-stats"></div>
-                    </div>
+            </div>
                     <canvas id="highest-chart"></canvas>
-                </div>
+            </div>
+            </div>
             </div>
         </div>
-    </div>
 
     <!-- Data Viewer Modal -->
     <div id="dataViewerModal" class="data-viewer-modal">
@@ -553,7 +553,7 @@
             <div class="data-viewer-header">
                 <div class="data-viewer-title">📊 Selected Timeframe Data</div>
                 <button class="data-viewer-close" onclick="closeDataViewer()">✕ Close</button>
-            </div>
+        </div>
             <div class="data-viewer-info" id="dataViewerInfo"></div>
             <div class="data-table-container">
                 <table class="data-table" id="dataTable">
@@ -570,12 +570,12 @@
                     </thead>
                     <tbody id="dataTableBody"></tbody>
                 </table>
-            </div>
+                </div>
             <div class="raw-data-section">
                 <div class="raw-data-header">
                     <span>📝 Raw API Response & Database Entry</span>
                     <button class="btn-copy-raw" onclick="copyRawData()" style="display: none;" id="btnCopyRaw">📋 Copy JSON</button>
-                </div>
+            </div>
                 <div id="rawDataContent" class="raw-data-content" style="display: none;"></div>
                 <div id="rawDataEmpty" class="raw-data-empty">Click on a row above to view the complete raw API response and database entry</div>
             </div>
@@ -924,15 +924,15 @@
                 if (sortedData.length === 0) {
                     showError('No data available in this chart');
                     return;
-                }
-                
+        }
+
                 // Get the clicked point index from Chart.js
                 const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
                 
                 let clickedIndex = -1;
                 if (points.length > 0) {
                     clickedIndex = points[0].index;
-                } else {
+            } else {
                     // If no exact point, get nearest point
                     const nearestPoints = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
                     if (nearestPoints.length > 0) {
@@ -969,7 +969,7 @@
             });
             
             return chart;
-        }
+            }
 
         // Get statistics for data
         function getDataStats(data) {
@@ -1130,10 +1130,10 @@
                         }
                     }
                 }
-            });
+                    });
 
             charts.push(chart);
-            
+
             // Add double-click handler to view detailed data for combined chart
             canvas.addEventListener('dblclick', async (event) => {
                 // Use allData which is already sorted ascending (oldest to newest)
@@ -1158,8 +1158,8 @@
                 
                 if (clickedIndex === -1 || clickedIndex >= allData.length) {
                     showError('Could not determine clicked data point');
-                    return;
-                }
+                return;
+            }
                 
                 // Get 5 points before and 5 points after (11 total)
                 const startIndex = Math.max(0, clickedIndex - 5);
@@ -1281,7 +1281,7 @@
                 showError(`Failed to load detailed data: ${error.message}`);
             }
         }
-
+        
         // Close data viewer
         function closeDataViewer() {
             document.getElementById('dataViewerModal').classList.remove('show');
@@ -1306,9 +1306,9 @@
                     }
                 } catch (e) {
                     console.warn('Could not parse raw_data:', e);
-                }
             }
-            
+        }
+        
             // Create formatted display with raw_data highlighted
             let formattedDisplay = '';
             
@@ -1370,7 +1370,7 @@
                 btn.textContent = '✓ Copied!';
                 btn.style.background = '#10b981';
                 
-                setTimeout(() => {
+            setTimeout(() => {
                     btn.textContent = originalText;
                     btn.style.background = '#6b7280';
                 }, 2000);
@@ -1384,7 +1384,7 @@
         document.getElementById('dataViewerModal').addEventListener('click', (e) => {
             if (e.target.id === 'dataViewerModal') {
                 closeDataViewer();
-            }
+        }
         });
 
         // Export to CSV
@@ -1430,7 +1430,7 @@
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-        }
+            }
 
         // Load data for a specific day
         async function loadDayData(date, dayIndex) {
@@ -1494,7 +1494,7 @@
                         ` : '<div class="no-data">No data available for this session</div>'}
                     </div>
                 `;
-            }
+        }
 
             // Add combined transitions chart
             const totalPoints = Object.values(allSessionsData).reduce((sum, data) => sum + data.length, 0);
@@ -1532,7 +1532,7 @@
             `;
 
             return { html, allSessionsData, dayIndex };
-        }
+            }
 
         // Populate day selector dropdown
         function populateDaySelector() {
@@ -1578,10 +1578,10 @@
             console.log('📊 Fetching outliers:', { date: dateStr, table: tableName });
             
             const response = await authenticatedFetch(url);
-            if (!response.ok) {
+                if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-            }
-            
+                }
+
             const data = await response.json();
             console.log('✅ Outliers received:', data);
             return data;
@@ -1747,7 +1747,7 @@
                 
                 // Fetch outliers data
                 const outliers = await fetchOutliers(selectedDate, selectedTable);
-                
+
                 // Check if we have any outlier data
                 if (!outliers.lowest && !outliers.highest) {
                     outliersSection.style.display = 'none';
@@ -1814,7 +1814,7 @@
             updateStatus('Loading data...');
             document.getElementById('loadingContainer').style.display = 'block';
             document.getElementById('chartsContainer').innerHTML = '';
-
+            
             // Destroy existing charts
             charts.forEach(chart => chart.destroy());
             charts.length = 0;
@@ -1869,7 +1869,7 @@
                 if (totalPoints > 0) {
                     const fullDayCanvasId = `chart-${dayIndex}-fullday`;
                     createFullDayChart(fullDayCanvasId, selectedDate, allSessionsData);
-                }
+        }
 
                 // Load outliers for the selected day
                 updateStatus('Loading daily outliers...');
@@ -1936,7 +1936,7 @@
             
             selectedTable = tableFromURL;
             console.log('✅ Using table:', selectedTable);
-            
+
             // Load session configuration for this table
             try {
                 await loadSessionConfig(selectedTable);
