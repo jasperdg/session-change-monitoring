@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Sessions Monitor - SEDA API</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.0.0/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .day-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .day-selector label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .day-selector select {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .day-selector select:hover {
+            border-color: #6366f1;
+        }
+
+        .day-selector select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #10b981;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            background-color: #6366f1;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+
+        .day-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .day-title {
+            font-size: 1.8rem;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .day-date {
+            font-size: 1rem;
+            color: #6b7280;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .chart-time {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .chart-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .full-day-chart {
+            grid-column: 1 / -1;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #991b1b;
+        }
+
+        canvas {
+            max-height: 250px;
+        }
+
+        .full-day-chart canvas {
+            max-height: 400px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* Data viewer modal */
+        .data-viewer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .data-viewer-modal.show {
+            display: block;
+        }
+
+        .data-viewer-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .data-viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .data-viewer-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .data-viewer-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .data-viewer-close:hover {
+            background: #dc2626;
+        }
+
+        .data-viewer-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .data-table-container {
+            overflow-x: auto;
+            max-height: 60vh;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .data-table tr.selected {
+            background: #dbeafe !important;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .data-table td.timestamp {
+            white-space: nowrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .data-table td.rate {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-export {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-export:hover {
+            background: #059669;
+        }
+
+        .zoom-instruction {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .outliers-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .outliers-section h2 {
+            color: #374151;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .outliers-description {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+
+        .outliers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .outlier-chart {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .outlier-chart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .outlier-chart canvas {
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .outliers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .raw-data-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .raw-data-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .raw-data-content {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .raw-data-empty {
+            color: #6b7280;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-copy-raw {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-copy-raw:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Trading Session Transitions Monitor</h1>
+            <p>4-Minute Transition Windows - SEDA API Data</p>
+        </div>
+
+        <div class="controls">
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span id="statusText">Select a day to view data...</span>
+            </div>
+            <div class="day-selector">
+                <label for="daySelector">Select Day:</label>
+                <select id="daySelector" onchange="loadSelectedDay()">
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            <button onclick="loadSelectedDay()">🔄 Reload</button>
+            <button onclick="window.location.href='/landing.html'" style="background: #6b7280;">← Back to Assets</button>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="loadingContainer" class="loading">Loading trading session data...</div>
+        <div id="chartsContainer"></div>
+        
+        <!-- Daily Outliers Section -->
+        <div id="outliersSection" class="outliers-section" style="display: none;">
+            <h2>Daily Outliers - Min/Max Peaks</h2>
+            <p class="outliers-description">Showing lowest and highest composite rates for the selected day with 1 minute of surrounding data</p>
+            <div class="outliers-grid">
+                <div class="outlier-chart" id="lowest-outlier">
+                    <div class="chart-header">
+                        <div class="chart-title">Lowest Rate</div>
+                        <div class="chart-stats" id="lowest-stats"></div>
+            </div>
+                    <canvas id="lowest-chart"></canvas>
+            </div>
+                <div class="outlier-chart" id="highest-outlier">
+                    <div class="chart-header">
+                        <div class="chart-title">Highest Rate</div>
+                        <div class="chart-stats" id="highest-stats"></div>
+            </div>
+                    <canvas id="highest-chart"></canvas>
+            </div>
+            </div>
+            </div>
+        </div>
+
+    <!-- Data Viewer Modal -->
+    <div id="dataViewerModal" class="data-viewer-modal">
+        <div class="data-viewer-content">
+            <div class="data-viewer-header">
+                <div class="data-viewer-title">📊 Selected Timeframe Data</div>
+                <button class="data-viewer-close" onclick="closeDataViewer()">✕ Close</button>
+        </div>
+            <div class="data-viewer-info" id="dataViewerInfo"></div>
+            <div class="data-table-container">
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Timestamp (Local)</th>
+                            <th>Timestamp (UTC)</th>
+                            <th>Composite Rate</th>
+                            <th>Active Session</th>
+                            <th>Session Weight</th>
+                            <th>Reference Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody"></tbody>
+                </table>
+                </div>
+            <div class="raw-data-section">
+                <div class="raw-data-header">
+                    <span>📝 Raw API Response & Database Entry</span>
+                    <button class="btn-copy-raw" onclick="copyRawData()" style="display: none;" id="btnCopyRaw">📋 Copy JSON</button>
+            </div>
+                <div id="rawDataContent" class="raw-data-content" style="display: none;"></div>
+                <div id="rawDataEmpty" class="raw-data-empty">Click on a row above to view the complete raw API response and database entry</div>
+            </div>
+            <div class="export-buttons">
+                <button class="btn-export" onclick="exportToCSV()">📥 Export to CSV</button>
+                <button class="btn-export" onclick="exportToJSON()">📥 Export to JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic session configuration - loaded from API based on selected table
+        let TRADING_SESSIONS = {};
+        let ASSET_NAME = '';
+        let ASSET_TIMEZONE = 'America/New_York'; // Default to ET
+
+        const charts = [];
+        let currentViewerData = []; // Store data for export
+        let selectedRawData = null; // Store selected record for raw view
+        let selectedTable = null; // Current selected table (set from URL or dropdown)
+        
+        // Vercel Protection Bypass Token
+        // To get your token: https://vercel.com/jasperdgs-projects/monitor-sessions/settings/deployment-protection
+        // Scroll to "Protection Bypass for Automation" and copy your token
+        const VERCEL_BYPASS_TOKEN = 'xM2SzOjpFAyrLFn1oGSAjBnWdJaTomm1'; // Replace with your actual token
+        
+        // Helper function to fetch with bypass token
+        async         function authenticatedFetch(url, options = {}) {
+            const headers = {
+                ...options.headers
+            };
+            
+            // Add bypass token if configured
+            if (VERCEL_BYPASS_TOKEN && VERCEL_BYPASS_TOKEN !== 'YOUR_BYPASS_TOKEN_HERE') {
+                headers['x-vercel-protection-bypass'] = VERCEL_BYPASS_TOKEN;
+            }
+            
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        // Format time in a specific timezone
+        function formatTimeWithTimezone(date, timezone) {
+            return date.toLocaleString('en-US', {
+                timeZone: timezone,
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `
+                <div class="error-message">
+                    <strong>⚠️ Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function updateStatus(message) {
+            document.getElementById('statusText').textContent = message;
+        }
+
+        // Convert ET time to UTC for API query
+        // Convert local time in a specific timezone to UTC
+        function getUTCDateTime(date, localTime, timezone) {
+            const [hours, minutes] = localTime.split(':').map(Number);
+            
+            console.log(`🕐 Converting ${timezone} to UTC:`, {
+                inputDate: date.toISOString ? date.toISOString() : date.toString(),
+                localTime: localTime,
+                timezone: timezone,
+                hours: hours,
+                minutes: minutes
+            });
+            
+            // Get date components (date is in UTC from our selector)
+            const year = date.getUTCFullYear();
+            const month = date.getUTCMonth();
+            const day = date.getUTCDate();
+            
+            console.log(`  Date components: ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+            
+            // Determine timezone offset by testing what hour it is in local timezone when it's 12:00 UTC
+            const testDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+            const localHourString = testDate.toLocaleString('en-US', {
+                timeZone: timezone,
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const localHour = parseInt(localHourString.split(':')[0]);
+            
+            // Calculate offset: UTC 12:00 = localHour in target timezone
+            // offset = hours we need to add to local time to get UTC
+            const tzOffset = (12 - localHour);
+            
+            console.log(`  UTC 12:00 = ${localHourString} ${timezone}, offset = ${tzOffset}`);
+            
+            // Create UTC timestamp: add timezone offset hours
+            const utcDate = new Date(Date.UTC(year, month, day, hours + tzOffset, minutes, 0));
+            
+            console.log(`  ✅ Result: ${localTime} ${timezone} on ${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')} = ${utcDate.toISOString()}`);
+            
+            return utcDate.toISOString();
+        }
+        
+        // Backward compatibility wrapper (deprecated)
+        function getUTCDateTimeForET(date, etTime) {
+            return getUTCDateTime(date, etTime, ASSET_TIMEZONE);
+        }
+
+        // Load session configuration for the selected table
+        async function loadSessionConfig(tableName) {
+            try {
+                const response = await authenticatedFetch(`/api/sessions?table=${tableName}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const config = await response.json();
+                console.log('📋 Loaded session config for', tableName, ':', config);
+                
+                // Convert sessions array to object keyed by session key
+                TRADING_SESSIONS = {};
+                config.sessions.forEach(session => {
+                    TRADING_SESSIONS[session.key] = {
+                        name: session.name,
+                        startTime: session.start_time,
+                        endTime: session.end_time,
+                        color: session.color
+                    };
+                });
+                
+                ASSET_NAME = config.asset_name;
+                ASSET_TIMEZONE = config.timezone || 'America/New_York';
+                
+                console.log(`⏰ Asset timezone: ${ASSET_TIMEZONE}`);
+                
+                // Update page title with asset name and timezone
+                document.title = `${ASSET_NAME} - Trading Session Monitor`;
+                const header = document.querySelector('.header h1');
+                if (header) {
+                    header.innerHTML = `📊 Trading Session Transitions Monitor<br><span style="font-size: 0.6em; font-weight: normal; opacity: 0.9;">${ASSET_NAME} (${ASSET_TIMEZONE})</span>`;
+                }
+                
+                return config;
+            } catch (error) {
+                console.error('❌ Failed to load session config:', error);
+                // Fallback to default if config fails
+                TRADING_SESSIONS = {
+                    session1: { name: 'Session Transition 1', startTime: '09:28', endTime: '09:32', color: '#3b82f6' },
+                    session2: { name: 'Session Transition 2', startTime: '15:58', endTime: '16:02', color: '#10b981' }
+                };
+                ASSET_NAME = tableName || 'Unknown Asset';
+                ASSET_TIMEZONE = 'America/New_York';
+                throw error;
+            }
+        }
+
+        // Get session time range for a specific day
+        function getSessionTimeRange(date, session) {
+            const sessionInfo = TRADING_SESSIONS[session];
+            if (!sessionInfo) {
+                console.error('❌ Session not found:', session);
+                return null;
+            }
+            
+            let startDateTime, endDateTime;
+
+            // Convert session times from asset timezone to UTC
+            startDateTime = getUTCDateTime(date, sessionInfo.startTime, ASSET_TIMEZONE);
+            endDateTime = getUTCDateTime(date, sessionInfo.endTime, ASSET_TIMEZONE);
+
+            return { start: startDateTime, end: endDateTime };
+        }
+
+        // Fetch data for a specific time range
+        async function fetchSessionData(start, end) {
+            try {
+                console.log('📊 Fetching data with table:', selectedTable);
+                const url = `/api/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
+                console.log('📡 API Request:', url);
+                const response = await authenticatedFetch(url);
+                
+                if (!response.ok) {
+                    console.error('❌ API Error:', response.status, response.statusText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 API Response:', { count: data.data?.length || 0, total: data.count });
+                return data.data || [];
+            } catch (error) {
+                console.error('❌ Error fetching session data:', error);
+                return [];
+            }
+        }
+
+        // Asset selector removed - users select from landing page instead
+
+        // Create a chart for a session
+        function createSessionChart(containerId, sessionName, sessionTime, data, color) {
+            const canvas = document.getElementById(containerId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Data comes from API in DESC order (newest first), reverse to show oldest → newest
+            const sortedData = [...data].reverse();
+            
+            // Store original timestamps for tooltip
+            const timestamps = sortedData.map(d => d.timestamp);
+            
+            const labels = sortedData.map(d => {
+                const date = new Date(d.timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    timeZone: ASSET_TIMEZONE,
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false 
+                });
+            });
+            
+            const values = sortedData.map(d => parseFloat(d.composite_rate));
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: sessionName,
+                        data: values,
+                        borderColor: color,
+                        backgroundColor: `${color}20`,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 2,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 10,
+                            titleFont: { size: 12 },
+                            bodyFont: { size: 12 },
+                            callbacks: {
+                                title: function(context) {
+                                    // Get the original timestamp from the data
+                                    const dataIndex = context[0].dataIndex;
+                                    if (dataIndex < timestamps.length) {
+                                        const timestamp = timestamps[dataIndex];
+                                        const date = new Date(timestamp);
+                                        
+                                        // Format in asset's timezone
+                                        const localTime = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true
+                                        });
+                                        
+                                        // Get timezone abbreviation
+                                        const tzParts = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            timeZoneName: 'short'
+                                        }).split(' ');
+                                        const tzAbbr = tzParts[tzParts.length - 1];
+                                        
+                                        return `${localTime} ${tzAbbr}`;
+                                    }
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    return `Rate: ${parseFloat(context.parsed.y).toFixed(5)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 9 },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 8
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            charts.push(chart);
+            
+            // Add double-click handler to view detailed data
+            canvas.addEventListener('dblclick', async (event) => {
+                // Use sortedData which is in ascending order (oldest to newest)
+                if (sortedData.length === 0) {
+                    showError('No data available in this chart');
+                    return;
+        }
+
+                // Get the clicked point index from Chart.js
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                
+                let clickedIndex = -1;
+                if (points.length > 0) {
+                    clickedIndex = points[0].index;
+            } else {
+                    // If no exact point, get nearest point
+                    const nearestPoints = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+                    if (nearestPoints.length > 0) {
+                        clickedIndex = nearestPoints[0].index;
+                    }
+                }
+                
+                if (clickedIndex === -1 || clickedIndex >= sortedData.length) {
+                    showError('Could not determine clicked data point');
+                    return;
+                }
+                
+                // Get 5 points before and 5 points after (11 total)
+                const startIndex = Math.max(0, clickedIndex - 5);
+                const endIndex = Math.min(sortedData.length - 1, clickedIndex + 5);
+                
+                const startTime = sortedData[startIndex].timestamp;
+                const endTime = sortedData[endIndex].timestamp;
+                
+                console.log('Session chart clicked:', {
+                    sessionName,
+                    totalPoints: sortedData.length,
+                    clickedIndex,
+                    rangeIndices: { start: startIndex, end: endIndex },
+                    rangeSize: endIndex - startIndex + 1,
+                    clickedPoint: sortedData[clickedIndex],
+                    timeRange: {
+                        start: new Date(startTime).toISOString(),
+                        end: new Date(endTime).toISOString()
+                    }
+                });
+                
+                await showDetailedDataViewer(startTime, endTime, `${sessionName} (±5 points)`);
+            });
+            
+            return chart;
+            }
+
+        // Get statistics for data
+        function getDataStats(data) {
+            if (!data || data.length === 0) {
+                return { count: 0, min: 0, max: 0, avg: 0 };
+            }
+
+            const values = data.map(d => parseFloat(d.composite_rate));
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+            return {
+                count: data.length,
+                min: min.toFixed(5),
+                max: max.toFixed(5),
+                avg: avg.toFixed(5)
+            };
+        }
+
+        // Create full day chart
+        function createFullDayChart(containerId, date, allSessionsData) {
+            const canvas = document.getElementById(containerId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Combine all session data and sort by timestamp (ascending: oldest → newest)
+            const allData = [];
+            Object.keys(allSessionsData).forEach(session => {
+                allSessionsData[session].forEach(d => {
+                    allData.push({
+                        ...d,
+                        session: session
+                    });
+                });
+            });
+            
+            // Sort ascending: oldest first (left) to newest last (right)
+            allData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // Store original timestamps for tooltip
+            const timestamps = allData.map(d => d.timestamp);
+
+            const labels = allData.map(d => {
+                const date = new Date(d.timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    timeZone: ASSET_TIMEZONE,
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false 
+                });
+            });
+            
+            const values = allData.map(d => parseFloat(d.composite_rate));
+
+            // Color points by session
+            const pointColors = allData.map(d => TRADING_SESSIONS[d.session].color);
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'All Transition Periods',
+                        data: values,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                title: function(context) {
+                                    // Get the original timestamp from the data
+                                    const dataIndex = context[0].dataIndex;
+                                    if (dataIndex < timestamps.length) {
+                                        const timestamp = timestamps[dataIndex];
+                                        const date = new Date(timestamp);
+                                        
+                                        // Format in asset's timezone
+                                        const localTime = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true
+                                        });
+                                        
+                                        // Get timezone abbreviation
+                                        const tzParts = date.toLocaleString('en-US', {
+                                            timeZone: ASSET_TIMEZONE,
+                                            timeZoneName: 'short'
+                                        }).split(' ');
+                                        const tzAbbr = tzParts[tzParts.length - 1];
+                                        
+                                        return `${localTime} ${tzAbbr}`;
+                                    }
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    return `${datasetLabel}: ${parseFloat(context.parsed.y).toFixed(5)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 15
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+                    });
+
+            charts.push(chart);
+
+            // Add double-click handler to view detailed data for combined chart
+            canvas.addEventListener('dblclick', async (event) => {
+                // Use allData which is already sorted ascending (oldest to newest)
+                if (allData.length === 0) {
+                    showError('No data available in combined chart');
+                    return;
+                }
+                
+                // Get the clicked point index from Chart.js
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+                
+                let clickedIndex = -1;
+                if (points.length > 0) {
+                    clickedIndex = points[0].index;
+                } else {
+                    // If no exact point, get nearest point
+                    const nearestPoints = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+                    if (nearestPoints.length > 0) {
+                        clickedIndex = nearestPoints[0].index;
+                    }
+                }
+                
+                if (clickedIndex === -1 || clickedIndex >= allData.length) {
+                    showError('Could not determine clicked data point');
+                return;
+            }
+                
+                // Get 5 points before and 5 points after (11 total)
+                const startIndex = Math.max(0, clickedIndex - 5);
+                const endIndex = Math.min(allData.length - 1, clickedIndex + 5);
+                
+                const startTime = allData[startIndex].timestamp;
+                const endTime = allData[endIndex].timestamp;
+                
+                console.log('Combined chart clicked:', {
+                    totalPoints: allData.length,
+                    clickedIndex,
+                    rangeIndices: { start: startIndex, end: endIndex },
+                    rangeSize: endIndex - startIndex + 1,
+                    clickedPoint: allData[clickedIndex],
+                    timeRange: {
+                        start: new Date(startTime).toISOString(),
+                        end: new Date(endTime).toISOString()
+                    }
+                });
+                
+                await showDetailedDataViewer(startTime, endTime, 'Combined Sessions (±5 points)');
+            });
+            
+            return chart;
+        }
+
+        // Show data viewer for a time range
+        async function showDetailedDataViewer(startTime, endTime, sessionName = '') {
+            try {
+                updateStatus('Fetching detailed data...');
+                
+                // Debug logging
+                console.log('Data Viewer Query:', {
+                    sessionName,
+                    startTime,
+                    endTime,
+                    startDate: new Date(startTime).toISOString(),
+                    endDate: new Date(endTime).toISOString()
+                });
+                
+                const url = `/api/history?start=${encodeURIComponent(startTime)}&end=${encodeURIComponent(endTime)}&limit=10000&table=${encodeURIComponent(selectedTable)}`;
+                console.log('API URL:', url);
+                
+                const response = await authenticatedFetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('API Response:', { recordCount: result.data?.length || 0 });
+                
+                if (!result.data || result.data.length === 0) {
+                    showError(`No detailed data found for this time range.<br>
+                        Start: ${new Date(startTime).toLocaleString()}<br>
+                        End: ${new Date(endTime).toLocaleString()}<br>
+                        <small>Check console for API query details.</small>`);
+                    return;
+                }
+
+                // Reverse to show oldest first
+                const data = result.data.reverse();
+                currentViewerData = data;
+                
+                // Populate info
+                const infoDiv = document.getElementById('dataViewerInfo');
+                const startDate = new Date(startTime);
+                const endDate = new Date(endTime);
+                infoDiv.innerHTML = `
+                    <strong>Session:</strong> ${sessionName || 'Combined'}<br>
+                    <strong>Time Range:</strong> ${startDate.toLocaleString()} - ${endDate.toLocaleString()}<br>
+                    <strong>Records Found:</strong> ${data.length}<br>
+                    <strong>Duration:</strong> ${((endDate - startDate) / 1000 / 60).toFixed(2)} minutes
+                `;
+                
+                // Populate table
+                const tbody = document.getElementById('dataTableBody');
+                tbody.innerHTML = '';
+                
+                data.forEach((record, index) => {
+                    const row = tbody.insertRow();
+                    const localTime = new Date(record.timestamp);
+                    
+                    row.innerHTML = `
+                        <td>${record.id}</td>
+                        <td class="timestamp">${localTime.toLocaleString()}</td>
+                        <td class="timestamp">${record.timestamp}</td>
+                        <td class="rate">${parseFloat(record.composite_rate).toFixed(5)}</td>
+                        <td>${record.active_session || 'N/A'}</td>
+                        <td>${record.session_weight || 'N/A'}</td>
+                        <td>${record.reference_weight || 'N/A'}</td>
+                    `;
+                    
+                    // Add click handler to show raw data
+                    row.addEventListener('click', function() {
+                        // Remove previous selection
+                        const previousSelected = tbody.querySelector('tr.selected');
+                        if (previousSelected) {
+                            previousSelected.classList.remove('selected');
+                        }
+                        
+                        // Select this row
+                        this.classList.add('selected');
+                        
+                        // Show raw data
+                        showRawData(record);
+                    });
+                });
+                
+                // Clear raw data section
+                clearRawData();
+                
+                // Show modal
+                document.getElementById('dataViewerModal').classList.add('show');
+                updateStatus(`Loaded ${data.length} detailed records`);
+                
+            } catch (error) {
+                console.error('Error loading detailed data:', error);
+                showError(`Failed to load detailed data: ${error.message}`);
+            }
+        }
+        
+        // Close data viewer
+        function closeDataViewer() {
+            document.getElementById('dataViewerModal').classList.remove('show');
+            clearRawData();
+        }
+
+        // Show raw data for selected record
+        function showRawData(record) {
+            selectedRawData = record;
+            
+            const rawDataContent = document.getElementById('rawDataContent');
+            const rawDataEmpty = document.getElementById('rawDataEmpty');
+            const btnCopyRaw = document.getElementById('btnCopyRaw');
+            
+            // Parse raw_data if it exists (it's stored as JSON string in database)
+            let displayData = { ...record };
+            if (record.raw_data) {
+                try {
+                    // If raw_data is a string, parse it
+                    if (typeof record.raw_data === 'string') {
+                        displayData.raw_data = JSON.parse(record.raw_data);
+                    }
+                } catch (e) {
+                    console.warn('Could not parse raw_data:', e);
+            }
+        }
+        
+            // Create formatted display with raw_data highlighted
+            let formattedDisplay = '';
+            
+            if (displayData.raw_data) {
+                formattedDisplay = `// ============================================\n`;
+                formattedDisplay += `// RAW API RESPONSE DATA\n`;
+                formattedDisplay += `// ============================================\n\n`;
+                formattedDisplay += JSON.stringify(displayData.raw_data, null, 2);
+                formattedDisplay += `\n\n// ============================================\n`;
+                formattedDisplay += `// COMPLETE DATABASE RECORD\n`;
+                formattedDisplay += `// ============================================\n\n`;
+                formattedDisplay += JSON.stringify(displayData, null, 2);
+            } else {
+                formattedDisplay = JSON.stringify(displayData, null, 2);
+            }
+            
+            rawDataContent.textContent = formattedDisplay;
+            rawDataContent.style.display = 'block';
+            rawDataEmpty.style.display = 'none';
+            btnCopyRaw.style.display = 'inline-block';
+            
+            // Scroll to raw data section
+            rawDataContent.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Clear raw data display
+        function clearRawData() {
+            selectedRawData = null;
+            
+            const rawDataContent = document.getElementById('rawDataContent');
+            const rawDataEmpty = document.getElementById('rawDataEmpty');
+            const btnCopyRaw = document.getElementById('btnCopyRaw');
+            
+            rawDataContent.style.display = 'none';
+            rawDataContent.textContent = '';
+            rawDataEmpty.style.display = 'block';
+            btnCopyRaw.style.display = 'none';
+        }
+
+        // Copy raw data to clipboard
+        function copyRawData() {
+            if (!selectedRawData) return;
+            
+            // Parse and format raw_data if it exists
+            let dataToCopy = { ...selectedRawData };
+            if (dataToCopy.raw_data && typeof dataToCopy.raw_data === 'string') {
+                try {
+                    dataToCopy.raw_data = JSON.parse(dataToCopy.raw_data);
+                } catch (e) {
+                    console.warn('Could not parse raw_data for copy:', e);
+                }
+            }
+            
+            const jsonString = JSON.stringify(dataToCopy, null, 2);
+            
+            navigator.clipboard.writeText(jsonString).then(() => {
+                const btn = document.getElementById('btnCopyRaw');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = '#10b981';
+                
+            setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6b7280';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showError('Failed to copy to clipboard');
+            });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('dataViewerModal').addEventListener('click', (e) => {
+            if (e.target.id === 'dataViewerModal') {
+                closeDataViewer();
+        }
+        });
+
+        // Export to CSV
+        function exportToCSV() {
+            if (currentViewerData.length === 0) return;
+            
+            const headers = ['ID', 'Timestamp (UTC)', 'Timestamp (Local)', 'Composite Rate', 'Active Session', 'Session Weight', 'Reference Weight'];
+            const csvContent = [
+                headers.join(','),
+                ...currentViewerData.map(record => {
+                    const localTime = new Date(record.timestamp).toLocaleString();
+                    return [
+                        record.id,
+                        `"${record.timestamp}"`,
+                        `"${localTime}"`,
+                        record.composite_rate,
+                        record.active_session || '',
+                        record.session_weight || '',
+                        record.reference_weight || ''
+                    ].join(',');
+                })
+            ].join('\n');
+            
+            downloadFile(csvContent, 'session-data.csv', 'text/csv');
+        }
+
+        // Export to JSON
+        function exportToJSON() {
+            if (currentViewerData.length === 0) return;
+            
+            const jsonContent = JSON.stringify(currentViewerData, null, 2);
+            downloadFile(jsonContent, 'session-data.json', 'application/json');
+        }
+
+        // Helper to download file
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            }
+
+        // Load data for a specific day
+        async function loadDayData(date, dayIndex) {
+            const dayStr = date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            const dayId = `day-${dayIndex}`;
+            const allSessionsData = {};
+
+            // Fetch data for each session
+            for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                const timeRange = getSessionTimeRange(date, sessionKey);
+                console.log(`🔍 Fetching ${sessionKey} (${sessionInfo.name}):`, {
+                    startUTC: timeRange.start,
+                    endUTC: timeRange.end
+                });
+                const data = await fetchSessionData(timeRange.start, timeRange.end);
+                console.log(`  ✅ Received ${data.length} records`);
+                allSessionsData[sessionKey] = data;
+            }
+
+            // Create HTML for this day
+            let html = `
+                <div class="day-section" id="${dayId}">
+                    <div class="day-header">
+                        <div>
+                            <div class="day-title">${dayStr}</div>
+                            <div class="day-date">${date.toISOString().split('T')[0]}</div>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+            `;
+
+            // Add session charts
+            for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                const data = allSessionsData[sessionKey];
+                const stats = getDataStats(data);
+                const canvasId = `chart-${dayIndex}-${sessionKey}`;
+                
+                html += `
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">${sessionInfo.name}</div>
+                            <div class="chart-time">${sessionInfo.startTime} - ${sessionInfo.endTime} ET</div>
+                        </div>
+                        ${data.length > 0 ? `
+                            <canvas id="${canvasId}"></canvas>
+                            <div class="chart-stats">
+                                <span>Points: ${stats.count}</span>
+                                <span>Min: ${stats.min}</span>
+                                <span>Max: ${stats.max}</span>
+                                <span>Avg: ${stats.avg}</span>
+                            </div>
+                            <div class="zoom-instruction">
+                                💡 Drag to zoom | Double-click a point to view ±5 records
+                            </div>
+                        ` : '<div class="no-data">No data available for this session</div>'}
+                    </div>
+                `;
+        }
+
+            // Add combined transitions chart
+            const totalPoints = Object.values(allSessionsData).reduce((sum, data) => sum + data.length, 0);
+            const fullDayCanvasId = `chart-${dayIndex}-fullday`;
+            
+            html += `
+                <div class="chart-container full-day-chart">
+                    <div class="chart-header">
+                        <div class="chart-title">All Transition Periods Combined</div>
+                        <div class="chart-time">4 × 4-minute windows (16 minutes total data)</div>
+                    </div>
+                    ${totalPoints > 0 ? `
+                        <canvas id="${fullDayCanvasId}"></canvas>
+                        <div class="legend">
+                            ${Object.entries(TRADING_SESSIONS).map(([key, info]) => `
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: ${info.color}"></div>
+                                    <span>${info.name}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.85rem; color: #6b7280; font-style: italic;">
+                            ⚠️ Note: This shows only transition periods, not continuous trading data
+                        </div>
+                        <div class="zoom-instruction">
+                            💡 Double-click a point to view ±5 surrounding records
+                        </div>
+                    ` : '<div class="no-data">No data available for this day</div>'}
+                </div>
+            `;
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            return { html, allSessionsData, dayIndex };
+            }
+
+        // Populate day selector dropdown
+        function populateDaySelector() {
+            const select = document.getElementById('daySelector');
+            const now = new Date();
+            
+            // Get current date in UTC (consistent across all assets/timezones)
+            const todayUTC = new Date();
+            todayUTC.setUTCHours(0, 0, 0, 0);
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(todayUTC);
+                date.setUTCDate(date.getUTCDate() - i);
+                
+                const option = document.createElement('option');
+                option.value = i;
+                
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    timeZone: 'UTC',
+                    weekday: 'long', 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                
+                if (i === 0) {
+                    option.text = `Today - ${dateStr}`;
+                } else if (i === 1) {
+                    option.text = `Yesterday - ${dateStr}`;
+                } else {
+                    option.text = dateStr;
+                }
+                
+                select.appendChild(option);
+            }
+        }
+
+        // Fetch outliers data from API
+        async function fetchOutliers(date, tableName) {
+            const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const url = `/api/outliers?date=${dateStr}&table=${encodeURIComponent(tableName)}`;
+            
+            console.log('📊 Fetching outliers:', { date: dateStr, table: tableName });
+            
+            const response = await authenticatedFetch(url);
+                if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+            const data = await response.json();
+            console.log('✅ Outliers received:', data);
+            return data;
+        }
+
+        // Create outlier chart (similar to session chart but for outliers)
+        function createOutlierChart(canvasId, data, peakValue, title, color) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Sort data by timestamp (oldest to newest)
+            const sortedData = [...data].sort((a, b) => 
+                new Date(a.timestamp) - new Date(b.timestamp)
+            );
+            
+            const labels = [];
+            const values = [];
+            const timestamps = [];
+            const pointColors = [];
+            const pointRadii = [];
+            
+            sortedData.forEach(item => {
+                const date = new Date(item.timestamp);
+                const localTime = formatTimeWithTimezone(date, ASSET_TIMEZONE);
+                labels.push(localTime);
+                values.push(parseFloat(item.composite_rate));
+                timestamps.push(item.timestamp);
+                
+                // Highlight the peak point
+                if (parseFloat(item.composite_rate) === parseFloat(peakValue)) {
+                    pointColors.push('#fbbf24'); // Yellow/gold for peak
+                    pointRadii.push(8);
+                } else {
+                    pointColors.push(color);
+                    pointRadii.push(3);
+                }
+            });
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: values,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: pointColors,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Rate: ${context.parsed.y.toFixed(6)}`;
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    if (idx < timestamps.length) {
+                                        const date = new Date(timestamps[idx]);
+                                        const tzTime = formatTimeWithTimezone(date, ASSET_TIMEZONE);
+                                        return `Time: ${tzTime}`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: (() => {
+                                    // Get timezone abbreviation
+                                    const testDate = new Date();
+                                    const tzParts = testDate.toLocaleString('en-US', {
+                                        timeZone: ASSET_TIMEZONE,
+                                        timeZoneName: 'short'
+                                    }).split(' ');
+                                    const tzAbbr = tzParts[tzParts.length - 1];
+                                    return `Time (${tzAbbr})`;
+                                })()
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Composite Rate'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Add double-click handler for detailed view
+            ctx.canvas.addEventListener('dblclick', (event) => {
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                if (points.length > 0) {
+                    const dataIndex = points[0].index;
+                    
+                    // Find 5 before and 5 after
+                    const startIdx = Math.max(0, dataIndex - 5);
+                    const endIdx = Math.min(sortedData.length - 1, dataIndex + 5);
+                    
+                    const startTime = sortedData[startIdx].timestamp;
+                    const endTime = sortedData[endIdx].timestamp;
+                    
+                    console.log('🔍 Double-click on outlier chart:', {
+                        dataIndex,
+                        startIdx,
+                        endIdx,
+                        startTime,
+                        endTime
+                    });
+                    
+                    showDetailedDataViewer(startTime, endTime);
+                }
+            });
+            
+            charts.push(chart);
+            return chart;
+        }
+
+        // Load and display outliers for the selected day
+        async function loadOutliers(selectedDate) {
+            try {
+                const outliersSection = document.getElementById('outliersSection');
+                const lowestStats = document.getElementById('lowest-stats');
+                const highestStats = document.getElementById('highest-stats');
+                
+                // Fetch outliers data
+                const outliers = await fetchOutliers(selectedDate, selectedTable);
+
+                // Check if we have any outlier data
+                if (!outliers.lowest && !outliers.highest) {
+                    outliersSection.style.display = 'none';
+                    console.log('ℹ️ No outlier data available for this day');
+                    return;
+                }
+                
+                // Show the outliers section
+                outliersSection.style.display = 'block';
+                
+                // Create lowest rate chart
+                if (outliers.lowest) {
+                    const lowestPeak = outliers.lowest.peak;
+                    const lowestContext = outliers.lowest.context;
+                    
+                    lowestStats.innerHTML = `
+                        <div>Peak: <strong>${parseFloat(lowestPeak.composite_rate).toFixed(6)}</strong></div>
+                        <div>Time: <strong>${formatTimeWithTimezone(new Date(lowestPeak.timestamp), ASSET_TIMEZONE)}</strong></div>
+                        <div>Data Points: <strong>${lowestContext.length}</strong></div>
+                    `;
+                    
+                    createOutlierChart(
+                        'lowest-chart',
+                        lowestContext,
+                        lowestPeak.composite_rate,
+                        'Lowest Rate',
+                        '#ef4444' // Red
+                    );
+                } else {
+                    lowestStats.innerHTML = '<div style="color: #6b7280;">No data available</div>';
+                }
+                
+                // Create highest rate chart
+                if (outliers.highest) {
+                    const highestPeak = outliers.highest.peak;
+                    const highestContext = outliers.highest.context;
+                    
+                    highestStats.innerHTML = `
+                        <div>Peak: <strong>${parseFloat(highestPeak.composite_rate).toFixed(6)}</strong></div>
+                        <div>Time: <strong>${formatTimeWithTimezone(new Date(highestPeak.timestamp), ASSET_TIMEZONE)}</strong></div>
+                        <div>Data Points: <strong>${highestContext.length}</strong></div>
+                    `;
+                    
+                    createOutlierChart(
+                        'highest-chart',
+                        highestContext,
+                        highestPeak.composite_rate,
+                        'Highest Rate',
+                        '#10b981' // Green
+                    );
+                } else {
+                    highestStats.innerHTML = '<div style="color: #6b7280;">No data available</div>';
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading outliers:', error);
+                document.getElementById('outliersSection').style.display = 'none';
+            }
+        }
+
+        // Load data for the selected day
+        async function loadSelectedDay() {
+            hideError();
+            updateStatus('Loading data...');
+            document.getElementById('loadingContainer').style.display = 'block';
+            document.getElementById('chartsContainer').innerHTML = '';
+            
+            // Destroy existing charts
+            charts.forEach(chart => chart.destroy());
+            charts.length = 0;
+            
+            // Hide outliers section and clear canvases
+            document.getElementById('outliersSection').style.display = 'none';
+            const lowestCanvas = document.getElementById('lowest-chart');
+            const highestCanvas = document.getElementById('highest-chart');
+            if (lowestCanvas) {
+                lowestCanvas.width = lowestCanvas.width; // Reset canvas
+            }
+            if (highestCanvas) {
+                highestCanvas.width = highestCanvas.width; // Reset canvas
+            }
+
+            try {
+                const select = document.getElementById('daySelector');
+                const daysAgo = parseInt(select.value);
+                
+                // Get current date in UTC (consistent across all assets)
+                const selectedDate = new Date();
+                selectedDate.setUTCHours(0, 0, 0, 0);
+                selectedDate.setUTCDate(selectedDate.getUTCDate() - daysAgo);
+                
+                updateStatus('Loading trading sessions...');
+                const dayData = await loadDayData(selectedDate, 0);
+
+                // Insert HTML
+                const chartsContainer = document.getElementById('chartsContainer');
+                chartsContainer.innerHTML = dayData.html;
+
+                // Create charts
+                const { allSessionsData, dayIndex } = dayData;
+                
+                // Create session charts
+                for (const [sessionKey, sessionInfo] of Object.entries(TRADING_SESSIONS)) {
+                    const data = allSessionsData[sessionKey];
+                    if (data.length > 0) {
+                        const canvasId = `chart-${dayIndex}-${sessionKey}`;
+                        createSessionChart(
+                            canvasId,
+                            sessionInfo.name,
+                            `${sessionInfo.startTime} - ${sessionInfo.endTime} ET`,
+                            data,
+                            sessionInfo.color
+                        );
+                    }
+                }
+
+                // Create full day chart
+                const totalPoints = Object.values(allSessionsData).reduce((sum, data) => sum + data.length, 0);
+                if (totalPoints > 0) {
+                    const fullDayCanvasId = `chart-${dayIndex}-fullday`;
+                    createFullDayChart(fullDayCanvasId, selectedDate, allSessionsData);
+        }
+
+                // Load outliers for the selected day
+                updateStatus('Loading daily outliers...');
+                await loadOutliers(selectedDate);
+                
+                document.getElementById('loadingContainer').style.display = 'none';
+                
+                const dateStr = selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                updateStatus(`Loaded ${charts.length} charts for ${dateStr}`);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError(`Failed to load data: ${error.message}`);
+                document.getElementById('loadingContainer').style.display = 'none';
+                updateStatus('Error loading data');
+            }
+        }
+
+        // Load available tables from API
+        async function loadAvailableTables() {
+            try {
+                const response = await authenticatedFetch('/api/tables');
+                if (!response.ok) {
+                    console.warn('Could not fetch tables, using default');
+                    return;
+                }
+                
+                const result = await response.json();
+                if (result.tables && result.tables.length > 0) {
+                    populateAssetSelector(result.tables);
+                }
+            } catch (error) {
+                console.warn('Error loading tables:', error);
+                // Silently fail and use default table
+            }
+        }
+
+        // Get table from URL parameter
+        function getTableFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const tableParam = params.get('table');
+            console.log('🔍 URL Search Params:', window.location.search);
+            console.log('🔍 Table parameter:', tableParam);
+            return tableParam;
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('📱 Page loaded, current URL:', window.location.href);
+            
+            // Get table from URL
+            const tableFromURL = getTableFromURL();
+            
+            if (!tableFromURL) {
+                // No table specified - redirect to landing page
+                console.warn('⚠️ No table parameter in URL, redirecting to landing page');
+                window.location.href = '/landing.html';
+                return;
+            }
+            
+            selectedTable = tableFromURL;
+            console.log('✅ Using table:', selectedTable);
+
+            // Load session configuration for this table
+            try {
+                await loadSessionConfig(selectedTable);
+            } catch (error) {
+                console.error('⚠️ Failed to load session config, using defaults');
+            }
+            
+            populateDaySelector();
+            await loadSelectedDay();
+        });
+    </script>
+</body>
+</html>
+
