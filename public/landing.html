@@ -11,6 +11,51 @@
             box-sizing: border-box;
         }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Auth Loading Overlay */
+        .auth-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .auth-loading-overlay.hidden {
+            display: none;
+        }
+
+        .auth-spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .auth-loading-text {
+            color: white;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
         /* Login Overlay Styles */
         .login-overlay {
             position: fixed;
@@ -19,14 +64,14 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 10000;
         }
 
-        .login-overlay.hidden {
-            display: none;
+        .login-overlay.visible {
+            display: flex;
         }
 
         .login-card {
@@ -122,6 +167,7 @@
             display: block;
         }
 
+        /* Main Content */
         .main-content {
             display: none;
             width: 100%;
@@ -132,16 +178,6 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
         }
 
         .container {
@@ -263,7 +299,13 @@
     </style>
 </head>
 <body>
-    <!-- Login Overlay -->
+    <!-- Auth Loading Overlay (shown first while checking) -->
+    <div id="authLoadingOverlay" class="auth-loading-overlay">
+        <div class="auth-spinner"></div>
+        <div class="auth-loading-text">Verifying access...</div>
+    </div>
+
+    <!-- Login Overlay (shown if not authenticated) -->
     <div id="loginOverlay" class="login-overlay">
         <div class="login-card">
             <div class="icon">🔐</div>
@@ -288,25 +330,25 @@
 
     <!-- Main Content (hidden until authenticated) -->
     <div class="main-content" id="mainContent">
-    <div class="container">
-        <div class="header">
-            <h1>📊 Trading Session Monitor</h1>
-            <p>Select an asset to view session transition analytics</p>
-        </div>
+        <div class="container">
+            <div class="header">
+                <h1>📊 Trading Session Monitor</h1>
+                <p>Select an asset to view session transition analytics</p>
+            </div>
 
-        <div id="loadingContainer" class="loading">
-            <div class="spinner"></div>
-            <p>Loading available assets...</p>
-        </div>
+            <div id="loadingContainer" class="loading">
+                <div class="spinner"></div>
+                <p>Loading available assets...</p>
+            </div>
 
-        <div id="errorContainer"></div>
-        <div id="tablesContainer" class="tables-grid"></div>
+            <div id="errorContainer"></div>
+            <div id="tablesContainer" class="tables-grid"></div>
+        </div>
     </div>
 
     <script>
         // Get asset name from table name
         function getAssetInfo(tableName) {
-            // Extract asset name (e.g., "btc_composite_rates" -> "BTC")
             const parts = tableName.replace('_composite_rates', '').split('_');
             const assetName = parts.map(p => p.toUpperCase()).join(' ');
             
@@ -364,7 +406,7 @@
                 
                 const card = document.createElement('a');
                 card.className = 'table-card';
-                card.href = `/index.html?table=${encodeURIComponent(tableName)}`;
+                card.href = `/session?table=${encodeURIComponent(tableName)}`;
                 
                 card.innerHTML = `
                     <div class="table-icon">${info.icon}</div>
@@ -398,12 +440,6 @@
             `;
         }
 
-        // Load tables on page load
-        window.addEventListener('DOMContentLoaded', loadTables);
-    </script>
-    </div> <!-- End main-content -->
-
-    <script>
         // Authentication handling
         async function checkAuthentication() {
             try {
@@ -434,7 +470,6 @@
                 return;
             }
             
-            // Disable button during request
             loginButton.disabled = true;
             loginButton.textContent = 'Checking...';
             loginError.classList.remove('visible');
@@ -452,10 +487,9 @@
                 const result = await response.json();
                 
                 if (result.authenticated) {
-                    // Success - show main content
                     showMainContent();
+                    loadTables();
                 } else {
-                    // Failed - show error
                     passwordInput.classList.add('error');
                     passwordInput.value = '';
                     loginError.classList.add('visible');
@@ -471,31 +505,36 @@
             }
         }
 
+        function hideAuthLoading() {
+            document.getElementById('authLoadingOverlay').classList.add('hidden');
+        }
+
         function showMainContent() {
-            document.getElementById('loginOverlay').classList.add('hidden');
+            hideAuthLoading();
+            document.getElementById('loginOverlay').classList.remove('visible');
             document.getElementById('mainContent').classList.add('visible');
         }
 
         function showLoginForm() {
-            document.getElementById('loginOverlay').classList.remove('hidden');
+            hideAuthLoading();
+            document.getElementById('loginOverlay').classList.add('visible');
             document.getElementById('mainContent').classList.remove('visible');
+            setTimeout(() => {
+                const input = document.getElementById('passwordInput');
+                if (input) input.focus();
+            }, 100);
         }
 
-        // Check auth on page load
+        // Initialize on page load
         (async function() {
             const isAuthenticated = await checkAuthentication();
             if (isAuthenticated) {
                 showMainContent();
+                loadTables();
             } else {
                 showLoginForm();
-                // Focus password input when login form is shown
-                setTimeout(() => {
-                    const input = document.getElementById('passwordInput');
-                    if (input) input.focus();
-                }, 100);
             }
         })();
     </script>
 </body>
 </html>
-
