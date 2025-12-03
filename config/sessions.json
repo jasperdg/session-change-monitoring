@@ -135,8 +135,42 @@
       }
     ]
   },
-  "injective_nvda_session_switch_update": {
-    "asset_name": "Injective NVDA no stale",
+  "injective_nvda_prod": {
+    "asset_name": "Injective NVDA prod",
+    "timezone": "America/New_York",
+    "sessions": [
+      {
+        "key": "overnight",
+        "name": "Overnight - Premarket",
+        "start_time": "03:58",
+        "end_time": "04:02",
+        "color": "#3b82f6"
+      },
+      {
+        "key": "premarket",
+        "name": "Premarket - Regular Hours",
+        "start_time": "09:28",
+        "end_time": "09:32",
+        "color": "#10b981"
+      },
+      {
+        "key": "regular",
+        "name": "Regular Hours - After Hours",
+        "start_time": "15:58",
+        "end_time": "16:02",
+        "color": "#f59e0b"
+      },
+      {
+        "key": "afterhours",
+        "name": "After Hours - Overnight",
+        "start_time": "19:58",
+        "end_time": "20:02",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "injective_pltr": {
+    "asset_name": "Injective PLTR",
     "timezone": "America/New_York",
     "sessions": [
       {

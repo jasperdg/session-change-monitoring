@@ -11,6 +11,129 @@
             box-sizing: border-box;
         }
 
+        /* Login Overlay Styles */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .login-overlay.hidden {
+            display: none;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .login-card h2 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .login-card p {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .login-card .icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .login-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .login-input.error {
+            border-color: #ef4444;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .login-error.visible {
+            display: block;
+        }
+
+        .main-content {
+            display: none;
+            width: 100%;
+        }
+
+        .main-content.visible {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -140,6 +263,31 @@
     </style>
 </head>
 <body>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="icon">🔐</div>
+            <h2>Dashboard Access</h2>
+            <p>Enter the password to view trading session data</p>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    class="login-input" 
+                    placeholder="Enter password..."
+                    autocomplete="current-password"
+                    required
+                >
+                <button type="submit" class="login-button" id="loginButton">
+                    Unlock Dashboard
+                </button>
+            </form>
+            <div id="loginError" class="login-error">Invalid password. Please try again.</div>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden until authenticated) -->
+    <div class="main-content" id="mainContent">
     <div class="container">
         <div class="header">
             <h1>📊 Trading Session Monitor</h1>
@@ -252,6 +400,101 @@
 
         // Load tables on page load
         window.addEventListener('DOMContentLoaded', loadTables);
+    </script>
+    </div> <!-- End main-content -->
+
+    <script>
+        // Authentication handling
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/auth-check', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                return result.authenticated === true;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                return false;
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const passwordInput = document.getElementById('passwordInput');
+            const loginButton = document.getElementById('loginButton');
+            const loginError = document.getElementById('loginError');
+            
+            const password = passwordInput.value;
+            
+            if (!password) {
+                passwordInput.classList.add('error');
+                setTimeout(() => passwordInput.classList.remove('error'), 500);
+                return;
+            }
+            
+            // Disable button during request
+            loginButton.disabled = true;
+            loginButton.textContent = 'Checking...';
+            loginError.classList.remove('visible');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.authenticated) {
+                    // Success - show main content
+                    showMainContent();
+                } else {
+                    // Failed - show error
+                    passwordInput.classList.add('error');
+                    passwordInput.value = '';
+                    loginError.classList.add('visible');
+                    setTimeout(() => passwordInput.classList.remove('error'), 500);
+                }
+            } catch (error) {
+                console.error('Login failed:', error);
+                loginError.textContent = 'Connection error. Please try again.';
+                loginError.classList.add('visible');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Unlock Dashboard';
+            }
+        }
+
+        function showMainContent() {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('visible');
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('visible');
+        }
+
+        // Check auth on page load
+        (async function() {
+            const isAuthenticated = await checkAuthentication();
+            if (isAuthenticated) {
+                showMainContent();
+            } else {
+                showLoginForm();
+                // Focus password input when login form is shown
+                setTimeout(() => {
+                    const input = document.getElementById('passwordInput');
+                    if (input) input.focus();
+                }, 100);
+            }
+        })();
     </script>
 </body>
 </html>
